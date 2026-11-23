@@ -3,4 +3,14 @@
   <PropertyGroup>
     <Version>1.0.0</Version>
   </PropertyGroup>
+
+  <!-- NuGet audit on restore, transitive packages included: high/critical advisories fail the build, low/moderate stay
+       warnings (also in the projects with TreatWarningsAsErrors). -->
+  <PropertyGroup>
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+    <WarningsAsErrors>$(WarningsAsErrors);NU1903;NU1904</WarningsAsErrors>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1901;NU1902</WarningsNotAsErrors>
+  </PropertyGroup>
 </Project>
