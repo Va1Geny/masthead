@@ -39,9 +39,4 @@
     <Copy SourceFiles="@(HookFiles)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" Condition="Exists('$(HookOut)Isle.Hook.exe')" />
   </Target>
 
-  <ItemGroup>
-    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="11.0.0" />
-    <PackageReference Include="Vortice.DXGI" Version="3.8.3" />
-  </ItemGroup>
-
 </Project>

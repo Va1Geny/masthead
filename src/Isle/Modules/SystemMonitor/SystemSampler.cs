@@ -252,21 +252,36 @@ public sealed class SystemSampler : IDisposable
         return (i, o);
     }
 
+    /// <summary>Largest adapter VRAM the display drivers publish under the display class key (every GPU has its own 0000, 0001, ... subkey); 0 when none does.</summary>
     static double? DedicatedVideoMemory()
     {
+        double best = 0;
         try
         {
-            using var factory = Vortice.DXGI.DXGI.CreateDXGIFactory1<Vortice.DXGI.IDXGIFactory1>();
-            ulong best = 0;
-            for (uint i = 0; factory.EnumAdapters1(i, out var adapter).Success; i++)
-                using (adapter) best = Math.Max(best, (ulong)adapter.Description1.DedicatedVideoMemory);
-            return best;
+            using var cls = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}");
+            foreach (var name in cls?.GetSubKeyNames() ?? [])
+            {
+                if (!name.All(char.IsAsciiDigit)) continue;
+                try
+                {
+                    using var k = cls!.OpenSubKey(name);
+                    var v = k?.GetValue("HardwareInformation.qwMemorySize") ?? k?.GetValue("HardwareInformation.MemorySize");
+                    best = Math.Max(best, v switch
+                    {
+                        long q => q,
+                        int d => (uint)d,
+                        byte[] { Length: >= 4 } b => b.Length >= 8 ? BitConverter.ToUInt64(b) : BitConverter.ToUInt32(b),
+                        _ => 0,
+                    });
+                }
+                catch (Exception ex) when (ex is System.Security.SecurityException or UnauthorizedAccessException or IOException) { } // some subkeys are locked down
+            }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is System.Security.SecurityException or UnauthorizedAccessException or IOException)
         {
-            Logger.Warn($"sysmon: no DXGI ({ex.GetType().Name})");
-            return 0;
+            Logger.Warn($"sysmon: no VRAM size ({ex.GetType().Name})");
         }
+        return best;
     }
 
     public void Dispose() { _pdh?.Dispose(); _pdh = null; }
