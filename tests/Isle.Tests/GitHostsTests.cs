@@ -54,6 +54,42 @@ public class GitHostsTests
         Assert.Equal(PullPlan.FastForward, GitHosts.Plan(new RepoStatus("x", 0, 3, 5, 0, true)));
     }
 
+    static readonly string[] Repos = [@"C:\Work\app", @"C:\Work\app\tools\cli", @"D:\x\"];
+
+    [Theory]
+    [InlineData(@"c:\work\APP\src", null, @"C:\Work\app")]                        // case-insensitive, cwd inside
+    [InlineData(@"C:\Work\app\tools\cli\bin", null, @"C:\Work\app\tools\cli")]   // deepest wins
+    [InlineData(@"C:\Work\app\", null, @"C:\Work\app")]                           // trailing slash on the hint
+    [InlineData(@"d:/x/sub", null, @"D:\x\")]                                     // forward slashes; repo with trailing slash
+    [InlineData(@"C:\Work\application", null, null)]                              // longer sibling name is not inside
+    [InlineData(@"C:\Other", null, null)]
+    [InlineData(@"""C:\Tools\dotnet.exe"" build ""C:\Work\app\app.sln""", @"C:\Other", @"C:\Work\app")] // command line wins over cwd
+    [InlineData("dotnet build", @"C:\Work\app\tools", @"C:\Work\app")]            // falls back to cwd
+    public void Build_maps_to_the_deepest_watched_project(string first, string? cwd, string? expected) =>
+        Assert.Equal(expected, BuildHistory.Match(Repos, first, cwd));
+
+    [Fact]
+    public void Old_label_keyed_history_loads_and_the_cwd_of_a_live_process_is_read()
+    {
+        var f = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllText(f, """{"dotnet test":[{"Seconds":5,"Ok":true}]}""");
+            Assert.Single(BuildHistory.Load(f)["dotnet test"]);
+            File.WriteAllText(f, "not json");
+            Assert.Empty(BuildHistory.Load(f));
+        }
+        finally { File.Delete(f); }
+        var dir = Directory.CreateTempSubdirectory("isle-cwd-");
+        try
+        {
+            using var p = Process.Start(new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "cmd.exe"), "/c ping -n 4 127.0.0.1 >nul") { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = dir.FullName })!;
+            Assert.Equal(dir.FullName, BuildWatcher.CurrentDirectory(p.Id)?.TrimEnd('\\'), ignoreCase: true);
+            p.Kill();
+        }
+        finally { dir.Delete(true); }
+    }
+
     [Fact]
     public void Build_history_is_capped_and_trends()
     {

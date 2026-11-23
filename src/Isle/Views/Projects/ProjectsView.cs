@@ -93,7 +93,7 @@ public sealed class ProjectsView : Grid, ITabView
         foreach (var (label, runs) in builds ?? [])
         {
             if (runs.Count == 0) continue;
-            var t = Ui.Dim($"{label}  {BuildHistory.Spark(runs)}  {BuildHistory.Secs(runs[^1].Seconds)}" + (runs.Count > 1 ? "  ·  " + Strings.T("projects.avg", BuildHistory.Secs(runs.Average(x => x.Seconds))) : ""), wrap: false);
+            var t = Ui.Dim($"{label}  {BuildHistory.Trend(runs)}", wrap: false);
             t.Margin = new Thickness(4, 0, 0, 1);
             _top.Children.Add(t);
         }
@@ -172,6 +172,12 @@ public sealed class ProjectsView : Grid, ITabView
             detail.Text = string.Join("  ·  ", parts);
         }
         text.Children.Add(detail);
+        if (r.Builds is { Count: > 0 } runs)
+        {
+            var builds = new TextBlock { Text = BuildHistory.Trend(runs), TextTrimming = TextTrimming.CharacterEllipsis, FontSize = 11.5 };
+            builds.SetResourceReference(TextBlock.ForegroundProperty, "FgFaintBrush");
+            text.Children.Add(builds);
+        }
         row.Children.Add(text);
         return row;
     }

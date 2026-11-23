@@ -5,8 +5,8 @@ using System.Text.RegularExpressions;
 
 namespace Isle.Modules.Projects;
 
-/// <summary>A build or test run that finished.</summary>
-public sealed record BuildResult(string Label, int? ExitCode, TimeSpan Duration);
+/// <summary>A build or test run that finished; <paramref name="Project"/> is the watched repository it ran in, when known.</summary>
+public sealed record BuildResult(string Label, int? ExitCode, TimeSpan Duration, string? Project = null);
 
 /// <summary>Recognises front-door build and test commands from a command line (pure; unit tested).</summary>
 public static partial class BuildCommand
@@ -94,7 +94,10 @@ public sealed class BuildWatcher : IDisposable
 
     public TimeSpan MinDuration { get; init; } = TimeSpan.FromSeconds(8);
 
-    readonly Dictionary<int, (SafeProcessHandle Handle, string Label)> _tracked = [];
+    /// <summary>Watched repository paths, read when a build starts (to map it to a project).</summary>
+    public Func<IReadOnlyList<string>> Repos { get; init; } = () => [];
+
+    readonly Dictionary<int, (SafeProcessHandle Handle, string Label, string? Project)> _tracked = [];
     HashSet<int> _seen = [];
     bool _primed;
 
@@ -115,7 +118,8 @@ public sealed class BuildWatcher : IDisposable
                 // our own handle keeps the exit code and times readable after the process is gone
                 var h = OpenProcessHandle(Synchronize | QueryLimited, false, p.Id);
                 if (h.IsInvalid) { h.Dispose(); continue; }
-                _tracked[p.Id] = (h, label);
+                var repos = Repos();
+                _tracked[p.Id] = (h, label, repos.Count == 0 ? null : BuildHistory.Match(repos, cmd, CurrentDirectory(p.Id)));
             }
             catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception) { }
             finally { p.Dispose(); }
@@ -132,7 +136,7 @@ public sealed class BuildWatcher : IDisposable
                 ? DateTime.FromFileTimeUtc(exited) - DateTime.FromFileTimeUtc(created)
                 : TimeSpan.Zero;
             t.Handle.Dispose();
-            if (duration >= MinDuration) Finished?.Invoke(new BuildResult(t.Label, code, duration));
+            if (duration >= MinDuration) Finished?.Invoke(new BuildResult(t.Label, code, duration, t.Project));
         }
     }
 
@@ -182,6 +186,37 @@ public sealed class BuildWatcher : IDisposable
         }
         finally { CloseHandle(h); }
     }
+
+    /// <summary>
+    /// Current directory of another process of this user: ProcessBasicInformation gives the PEB, whose ProcessParameters
+    /// hold CurrentDirectory.DosPath (x64 offsets; null on any failure or in a 32-bit Isle).
+    /// </summary>
+    internal static string? CurrentDirectory(int pid)
+    {
+        if (IntPtr.Size != 8) return null;
+        var h = OpenProcess(0x0410 /* QUERY_INFORMATION | VM_READ */, false, pid);
+        if (h == IntPtr.Zero) return null;
+        var buf = Marshal.AllocHGlobal(48);
+        try
+        {
+            if (NtQueryInformationProcess(h, 0, buf, 48, out _) != 0) return null;
+            var peb = Marshal.ReadIntPtr(buf, 8);
+            if (!ReadMemory(h, peb + 0x20, buf, 8) || Marshal.ReadIntPtr(buf) is var pp && pp == IntPtr.Zero) return null; // PEB.ProcessParameters
+            if (!ReadMemory(h, pp + 0x38, buf, 16)) return null; // CurrentDirectory.DosPath: UNICODE_STRING
+            int len = (ushort)Marshal.ReadInt16(buf);
+            var text = Marshal.ReadIntPtr(buf, 8);
+            if (len == 0 || len > 2 * 1024 || text == IntPtr.Zero) return null;
+            var chars = Marshal.AllocHGlobal(len);
+            try { return ReadMemory(h, text, chars, len) ? Marshal.PtrToStringUni(chars, len / 2) : null; }
+            finally { Marshal.FreeHGlobal(chars); }
+        }
+        finally { Marshal.FreeHGlobal(buf); CloseHandle(h); }
+    }
+
+    static bool ReadMemory(IntPtr process, IntPtr address, IntPtr buffer, int size) => ReadProcessMemory(process, address, buffer, size, out var read) && read == size;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern bool ReadProcessMemory(IntPtr process, IntPtr address, IntPtr buffer, int size, out int read);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     static extern IntPtr OpenProcess(uint access, bool inherit, int pid);

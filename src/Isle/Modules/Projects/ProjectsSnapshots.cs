@@ -8,11 +8,13 @@ static class ProjectsSnapshots
 {
     static readonly DateTimeOffset T = new(2026, 11, 21, 10, 0, 0, TimeSpan.Zero);
 
+    static readonly BuildRun[] Spent = [new(48, true), new(52, true), new(61, false), new(44, true), new(42, true)];
+
     static readonly Repo[] Demo =
     [
-        new(@"C:\Users\me\Projects\island", "island", new RepoStatus("dev-edition", 2, 0, 5, 1, true), "me/island", new CiRun(1, "build", CiState.Running, "", T)),
+        new(@"C:\Users\me\Projects\island", "island", new RepoStatus("dev-edition", 2, 0, 5, 1, true), "me/island", new CiRun(1, "build", CiState.Running, "", T), null, Spent),
         new(@"C:\Users\me\Projects\infra", "infra", new RepoStatus("main", 0, 1, 0, 0, true), null, new CiRun(4, "pipeline", CiState.Passed, "", T), "team/infra"),
-        new(@"C:\Users\me\Projects\api", "api", new RepoStatus("main", 0, 3, 0, 0, true), "me/api", new CiRun(2, "test", CiState.Failed, "", T)),
+        new(@"C:\Users\me\Projects\api", "api", new RepoStatus("main", 0, 3, 0, 0, true), "me/api", new CiRun(2, "test", CiState.Failed, "", T), null, [new(31, true), new(29, true), new(33, true)]),
         new(@"C:\Users\me\Projects\site", "site", new RepoStatus("feature/hero", 1, 0, 0, 0, false), "me/site", new CiRun(3, "deploy", CiState.Passed, "", T)),
         new(@"C:\Users\me\Projects\notes", "notes", new RepoStatus("main", 0, 0, 0, 0, true), null, null),
     ];
@@ -33,7 +35,6 @@ static class ProjectsSnapshots
 
     static readonly (string, IReadOnlyList<BuildRun>)[] Builds =
     [
-        ("dotnet test", [new(48, true), new(52, true), new(61, false), new(44, true), new(42, true)]),
         ("npm run build", [new(19, true), new(21, true), new(18, true)]),
     ];
 

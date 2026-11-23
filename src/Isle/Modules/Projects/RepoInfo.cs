@@ -13,9 +13,9 @@ public enum CiState { None, Running, Passed, Failed, Cancelled }
 public sealed record CiRun(long Id, string Name, CiState State, string Url, DateTimeOffset Updated);
 
 /// <summary>One watched repository as the Projects tab shows it.</summary>
-public sealed record Repo(string Path, string Name, RepoStatus? Status, string? GitHub, CiRun? Ci, string? GitLab = null);
+public sealed record Repo(string Path, string Name, RepoStatus? Status, string? GitHub, CiRun? Ci, string? GitLab = null, IReadOnlyList<BuildRun>? Builds = null);
 
-/// <summary>Parsers for git and the GitHub REST API (pure; unit tested).</summary>
+/// <summary>Parsers for git and gh output (pure; unit tested).</summary>
 public static partial class RepoParse
 {
     public static RepoStatus? Status(string porcelain)
@@ -54,22 +54,21 @@ public static partial class RepoParse
         return m.Success ? $"{m.Groups["owner"].Value}/{m.Groups["repo"].Value}" : null;
     }
 
-    /// <summary>The newest run from <c>GET /repos/{o}/{r}/actions/runs</c>.</summary>
+    /// <summary>The newest run from <c>gh run list --json databaseId,name,status,conclusion,updatedAt,url</c>.</summary>
     public static CiRun? LatestRun(string json)
     {
         using var doc = JsonDocument.Parse(json);
-        if (!doc.RootElement.TryGetProperty("workflow_runs", out var runs) || runs.GetArrayLength() == 0) return null;
-        var r = runs[0];
-        var status = r.GetProperty("status").GetString();
+        if (doc.RootElement.ValueKind != JsonValueKind.Array || doc.RootElement.GetArrayLength() == 0) return null;
+        var r = doc.RootElement[0];
         var conclusion = r.TryGetProperty("conclusion", out var c) && c.ValueKind == JsonValueKind.String ? c.GetString() : null;
-        var state = status != "completed" ? CiState.Running : conclusion switch
+        var state = r.GetProperty("status").GetString() != "completed" ? CiState.Running : conclusion switch
         {
             "success" or "neutral" or "skipped" => CiState.Passed,
             "cancelled" => CiState.Cancelled,
             _ => CiState.Failed,
         };
-        var updated = r.TryGetProperty("updated_at", out var u) && u.TryGetDateTimeOffset(out var when) ? when : DateTimeOffset.MinValue;
-        return new CiRun(r.GetProperty("id").GetInt64(), r.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "", state, r.GetProperty("html_url").GetString() ?? "", updated);
+        var updated = r.TryGetProperty("updatedAt", out var u) && u.TryGetDateTimeOffset(out var when) ? when : DateTimeOffset.MinValue;
+        return new CiRun(r.GetProperty("databaseId").GetInt64(), r.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "", state, r.GetProperty("url").GetString() ?? "", updated);
     }
 
     /// <summary>

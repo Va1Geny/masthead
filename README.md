@@ -39,7 +39,7 @@ developer features below, and nothing else.
   hotkey (<kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>Space</kbd>) and per-module options.
 
 No accounts, no telemetry. Everything lives in `%AppData%\Isle\` (override with `ISLE_DATA_DIR`). The network is used
-only by Projects (GitHub REST API, for repositories you add). Agent hooks are never installed silently:
+only by Projects (the `gh` and `git` CLIs, for repositories you add). Agent hooks are never installed silently:
 **Settings → Options → Agents** shows exactly what will change and backs up the config file.
 
 ## Build and run
