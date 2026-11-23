@@ -13,7 +13,7 @@ public partial class IslandWindow
 {
     readonly List<TabInfo> _tabs = [];
     readonly Dictionary<string, FrameworkElement> _views = [];
-    string? _currentTab, _requestedTab;
+    string? _currentTab;
     bool _tabChosen; // the user (or a module) picked a tab this session; until then the remembered tab wins
     IdlePillView? _idleView;
     DispatcherTimer? _toastTimer;
@@ -121,9 +121,6 @@ public partial class IslandWindow
 
     /// <summary>The view of a tab if it has been created.</summary>
     public FrameworkElement? TabViewFor(string id) => _views.GetValueOrDefault(id);
-
-    /// <summary>Asks for this tab to be shown the next time the island expands (e.g. Music after a track change).</summary>
-    public void RequestTab(string id) => _requestedTab = id;
 
     void RefreshTabs()
     {

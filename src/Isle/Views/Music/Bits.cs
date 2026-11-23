@@ -127,8 +127,6 @@ public sealed class MarqueeText : Grid
         MouseLeave += (_, _) => StopScroll();
     }
 
-    public TextBlock Inner => _text;
-
     public string Text
     {
         get => _text.Text;

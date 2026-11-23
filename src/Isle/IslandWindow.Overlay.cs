@@ -10,8 +10,6 @@ public partial class IslandWindow
     FrameworkElement? _overlay;
     IInputElement? _beforeOverlayFocus;
 
-    public bool IsOverlayShown(FrameworkElement view) => ReferenceEquals(_overlay, view) && view.Visibility == Visibility.Visible && _expanded;
-
     public void ShowOverlay(FrameworkElement view)
     {
         if (_overlay is not { Visibility: Visibility.Visible }) _beforeOverlayFocus = Keyboard.FocusedElement;
@@ -54,14 +52,5 @@ public partial class IslandWindow
         if (_hasFocus && _beforeOverlayFocus is UIElement { IsVisible: true, IsEnabled: true, Focusable: true } previous)
             previous.Focus();
         _beforeOverlayFocus = null;
-    }
-
-    int _captureExclusions;
-
-    /// <summary>Balances nested screenshot/recording exclusions; each true must have a matching false.</summary>
-    public void ExcludeFromCapture(bool on)
-    {
-        _captureExclusions = Math.Max(0, _captureExclusions + (on ? 1 : -1));
-        if (_hwnd != IntPtr.Zero) Native.SetWindowDisplayAffinity(_hwnd, _captureExclusions > 0 ? Native.WDA_EXCLUDEFROMCAPTURE : Native.WDA_NONE);
     }
 }

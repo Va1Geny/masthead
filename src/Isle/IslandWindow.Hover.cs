@@ -150,8 +150,7 @@ public partial class IslandWindow
     /// <summary>Opens the panel. <paramref name="sticky"/>: keep it open until the cursor has entered once (hotkeys).</summary>
     public void Expand(string? tabId = null, bool sticky = false)
     {
-        var tab = tabId ?? _requestedTab ?? Pill.Primary?.TabId;
-        _requestedTab = null;
+        var tab = tabId ?? Pill.Primary?.TabId;
         if (tab is not null) SelectTab(tab, animate: _expanded);
         if (_expanded) { _sticky |= sticky; return; }
 

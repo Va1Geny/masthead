@@ -22,11 +22,6 @@ public static class EventBus
         });
     }
 
-    public static bool HasSubscribers<T>()
-    {
-        lock (Gate) return Handlers.TryGetValue(typeof(T), out var list) && list.Count > 0;
-    }
-
     public static void Publish<T>(T message)
     {
         Delegate[] snapshot;

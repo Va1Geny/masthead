@@ -22,8 +22,6 @@ public partial class IslandWindow
     /// <summary>"notch" (default): hangs from the top edge of the screen like a curtain. "pill": floats below it.</summary>
     static bool NotchSetting() => Settings.Current.Opt("shape", "notch") != "pill";
 
-    public bool IsExpanded => _expanded;
-
     /// <summary>Raised when the island finishes changing between collapsed and expanded (argument: expanded).</summary>
     public event Action<bool>? ExpandedChanged;
 

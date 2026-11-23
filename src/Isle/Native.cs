@@ -209,7 +209,6 @@ internal static partial class Native
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool DestroyMenu(IntPtr hMenu);
 
-    // ---- window enumeration / DWM ----
     public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
     [DllImport("user32.dll")]
@@ -231,10 +230,4 @@ internal static partial class Native
 
     [DllImport("dwmapi.dll", EntryPoint = "DwmGetWindowAttribute")]
     public static extern int DwmGetWindowAttributeInt(IntPtr hwnd, int attr, out int value, int size);
-
-    public const uint WDA_NONE = 0, WDA_EXCLUDEFROMCAPTURE = 0x11;
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool SetWindowDisplayAffinity(IntPtr hWnd, uint affinity);
 }
