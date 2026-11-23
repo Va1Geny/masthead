@@ -219,6 +219,14 @@ public sealed class SettingsView : Grid, ITabView
         OptionGroup("kube");
         Row("set.kubePattern", OptText("kube.prodPattern", Modules.Kube.KubeConfig.DefaultPattern, "kube", Modules.Kube.KubeConfig.DefaultPattern), "set.kubePattern.hint", wide: true);
 
+        OptionGroup("servers");
+        Row("set.serversReach", OptSwitch("servers.reach", false), "set.serversReach.hint");
+        Row("set.serversReachHosts", OptText("servers.reachHosts", "web-1; db-staging"), "set.serversReachHosts.hint", wide: true);
+        Row("set.serversWatch", OptText("servers.watch", "https://example.com tls; status.example.com", "servers"), "set.serversWatch.hint", wide: true);
+        Row("set.serversCertDays", Choice(["7", "14", "30"], S.OptInt("servers.certDays", 14).ToString(CultureInfo.InvariantCulture),
+            v => { S.SetOpt("servers.certDays", v); Save("Options"); }, null, v => Strings.T("set.days", v)));
+        Row("set.serversSso", OptSwitch("servers.ssoPill", true, restart: "servers"));
+
         OptionGroup("agents");
         Row("set.agentsApprovals", OptSwitch("agents.approvals", true), "set.agentsApprovals.hint");
         Row("set.agentsTimeout", Choice(["30", "60", "120", "300"], Modules.Agents.AgentsModule.TimeoutSeconds.ToString(CultureInfo.InvariantCulture),
