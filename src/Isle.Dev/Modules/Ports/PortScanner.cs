@@ -30,6 +30,17 @@ public static class PortFilter
         "vmmem", "vmmemWSL", "elasticsearch", "ollama", "influxd", "clickhouse-server", "etcd", "consul", "vault",
     };
 
+    /// <summary>Desktop apps that open local ports for themselves (process name → shown name); not dev servers.</summary>
+    static readonly Dictionary<string, string> DesktopApps = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Spotify"] = "Spotify", ["Discord"] = "Discord", ["Steam"] = "Steam", ["steamwebhelper"] = "Steam", ["Slack"] = "Slack",
+        ["Teams"] = "Teams", ["ms-teams"] = "Teams", ["Zoom"] = "Zoom", ["Telegram"] = "Telegram", ["Signal"] = "Signal",
+        ["EpicGamesLauncher"] = "Epic Games", ["Dropbox"] = "Dropbox", ["Notion"] = "Notion", ["WhatsApp"] = "WhatsApp",
+    };
+
+    /// <summary>The app's shown name when <paramref name="process"/> is a known desktop app, else null.</summary>
+    public static string? DesktopApp(string process) => DesktopApps.GetValueOrDefault(process);
+
     /// <summary>First port of the dynamic (ephemeral) range; listeners above it are almost always plumbing.</summary>
     public const int DynamicPorts = 49152;
 

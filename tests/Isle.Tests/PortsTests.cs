@@ -20,6 +20,13 @@ public class PortsTests
     }
 
     [Fact]
+    public void Known_desktop_apps_are_not_dev_servers()
+    {
+        Assert.Equal("Spotify", PortFilter.DesktopApp("spotify"));
+        Assert.Null(PortFilter.DesktopApp("node"));
+    }
+
+    [Fact]
     public void Worker_processes_sharing_a_port_are_one_row()
     {
         var merged = PortFilter.Merge([new Listener(80, 30, "nginx", true), new Listener(80, 12, "nginx", true), new Listener(80, 20, "nginx", false)]);

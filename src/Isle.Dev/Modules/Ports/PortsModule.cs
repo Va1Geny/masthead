@@ -48,7 +48,7 @@ public sealed class PortsModule(IslandWindow island) : IModule, IDisposable
         {
             Id = PillId, Priority = PillPriority.Transient, Width = 220, Peek = true,
             View = () => PillView(l),
-            Click = () => ProcessOps.Open(PortsView.Url(l.Port)),
+            Click = PortFilter.DesktopApp(l.Process) is null ? () => ProcessOps.Open(PortsView.Url(l.Port)) : null,
         });
         _pillTimer ??= new DispatcherTimer { Interval = TimeSpan.FromSeconds(6) };
         _pillTimer.Tick -= HidePill;
@@ -65,7 +65,7 @@ public sealed class PortsModule(IslandWindow island) : IModule, IDisposable
         var icon = Views.Ui.MakeIcon("Icon.Server", 14, "OkBrush");
         icon.Margin = new Thickness(0, 0, 6, 0);
         row.Children.Add(icon);
-        var t = new TextBlock { Text = $"{l.Process} · :{l.Port}", FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
+        var t = new TextBlock { Text = PortFilter.DesktopApp(l.Process) is { } app ? Strings.T("ports.appLoading", app) : $"{l.Process} · :{l.Port}", FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
         t.SetResourceReference(TextBlock.ForegroundProperty, "FgBrush");
         row.Children.Add(t);
         return row;
