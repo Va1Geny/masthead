@@ -89,6 +89,7 @@ public sealed class KubeModule(IslandWindow island) : IModule, IDisposable
     Regex _pattern = KubeConfig.BuildPattern(null, out _);
     DispatcherTimer? _debounce, _bannerTimer;
     string? _context;
+    bool _running;
 
     public string Id => "kube";
 
@@ -99,29 +100,62 @@ public sealed class KubeModule(IslandWindow island) : IModule, IDisposable
         _files = KubeConfig.Paths(Environment.GetEnvironmentVariable("KUBECONFIG"), Environment.GetEnvironmentVariable("USERPROFILE") ?? "");
         var debounce = _debounce = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(300) };
         debounce.Tick += (_, _) => { debounce.Stop(); Recheck(initial: false); };
-        void Kick() => island.Dispatcher.BeginInvoke(() => { debounce.Stop(); debounce.Start(); });
+        _running = true;
+        Watch();
+        Recheck(initial: true);
+    }
+
+    void Kick() => island.Dispatcher.BeginInvoke(() => { _debounce!.Stop(); _debounce.Start(); });
+
+    /// <summary>Watches each config file; when its folder is missing (no ~/.kube yet), watches the parent for that folder instead.</summary>
+    void Watch()
+    {
         foreach (var f in _files)
         {
             var dir = Path.GetDirectoryName(f);
-            if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) continue;
+            if (string.IsNullOrEmpty(dir)) continue;
+            // ponytail: only one missing level is watched (~/.kube under the profile); a deeper missing KUBECONFIG folder needs a restart
+            var missing = !Directory.Exists(dir);
+            var watchDir = missing ? Path.GetDirectoryName(dir) : dir;
+            if (string.IsNullOrEmpty(watchDir) || !Directory.Exists(watchDir)) continue;
             try
             {
-                var w = new FileSystemWatcher(dir, Path.GetFileName(f)) { NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size };
-                w.Created += (_, _) => Kick();
-                w.Changed += (_, _) => Kick();
-                w.Deleted += (_, _) => Kick();
-                w.Renamed += (_, _) => Kick();
+                var w = new FileSystemWatcher(watchDir, Path.GetFileName(missing ? dir : f))
+                {
+                    NotifyFilter = missing ? NotifyFilters.DirectoryName : NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size,
+                };
+                if (missing)
+                {
+                    w.Created += (_, _) => Rewatch();
+                    w.Renamed += (_, _) => Rewatch();
+                }
+                else
+                {
+                    w.Created += (_, _) => Kick();
+                    w.Changed += (_, _) => Kick();
+                    w.Deleted += (_, _) => Kick();
+                    w.Renamed += (_, _) => Kick();
+                }
                 w.EnableRaisingEvents = true;
                 _watchers.Add(w);
             }
             catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException) { Logger.Warn("kube: cannot watch config directory"); }
         }
-        if (_watchers.Count > 0) Recheck(initial: true);
     }
+
+    /// <summary>A missing config folder appeared: rebuild the watchers and read the config it may already hold.</summary>
+    void Rewatch() => island.Dispatcher.BeginInvoke(() =>
+    {
+        if (!_running) return;
+        foreach (var w in _watchers) w.Dispose();
+        _watchers.Clear();
+        Watch();
+        Recheck(initial: false);
+    });
 
     void Recheck(bool initial)
     {
-        if (_watchers.Count == 0) return; // stopped: a watcher event queued before Stop() must not re-add the pill
+        if (!_running) return; // stopped: a watcher event queued before Stop() must not re-add the pill
         var ctx = KubeConfig.Resolve(_files);
         if (ctx == _context) return;
         _context = ctx;
@@ -161,6 +195,7 @@ public sealed class KubeModule(IslandWindow island) : IModule, IDisposable
 
     public void Stop()
     {
+        _running = false;
         foreach (var w in _watchers) w.Dispose();
         _watchers.Clear();
         _debounce?.Stop();
