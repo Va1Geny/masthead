@@ -44,6 +44,7 @@ public sealed class MediaModule(IslandWindow island) : IModule, IDisposable
         _session = new MediaSession(island.Dispatcher);
         _session.Changed += OnChanged;
         Raise(Started);
+        _session.ShowLoading = !HasTab;
         if (!HasTab) SetIdleWidth(MiniPlayerPill.PillWidth * 0.8); // idle notch 20% narrower than the mini player
         _ = StartSessionAsync(_session);
     }
@@ -101,7 +102,7 @@ public sealed class MediaModule(IslandWindow island) : IModule, IDisposable
         _pill?.Update(cur);
         _mini?.Update(cur);
 
-        if (cur.IsPlaying && cur.TrackKey != _banneredTrack)
+        if (cur.IsPlaying && cur.Title.Length > 0 && cur.TrackKey != _banneredTrack)
         {
             _banneredTrack = cur.TrackKey; // a track that first shows up paused gets its banner when it starts playing
             ShowBanner(cur);

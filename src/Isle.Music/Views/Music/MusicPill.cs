@@ -116,7 +116,7 @@ public sealed class MiniPlayerPill : Grid
     {
         _art.Set(s);
         _text.Inlines.Clear();
-        _text.Inlines.Add(new Run(s.Title));
+        _text.Inlines.Add(new Run(s.Title.Length > 0 ? s.Title : Strings.T("music.loading", s.Source)));
         if (s.Artist.Length > 0)
         {
             var artist = new Run(" — " + s.Artist);

@@ -13,6 +13,7 @@ static class MediaSnapshots
         states["music-pill"] = w => Pill(w, Demo(), () => null);
         states["music-mini"] = w => Mini(w, Demo());
         states["music-mini-short"] = w => Mini(w, Demo() with { Title = "Lua", Artist = "Bright Eyes", IsPlaying = false });
+        states["music-mini-loading"] = w => Mini(w, new MediaState { Title = "", Source = "Spotify", IsPlaying = true });
         states["music-banner"] = w =>
         {
             var s = Demo();

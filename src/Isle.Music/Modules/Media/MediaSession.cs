@@ -38,6 +38,8 @@ public sealed class MediaSession : IMediaSource, IDisposable
     bool _disposed;
 
     public MediaState? Current => _current;
+    /// <summary>Publish an empty-title state while a session has no track yet (the mini player shows "App — loading…").</summary>
+    public bool ShowLoading { get; set; }
     public event Action? Changed;
 
     public MediaSession(Dispatcher ui) => _ui = ui;
@@ -131,7 +133,12 @@ public sealed class MediaSession : IMediaSource, IDisposable
             var playback = s.GetPlaybackInfo();
             var timeline = s.GetTimelineProperties();
             var title = props?.Title ?? "";
-            if (title.Length == 0) { Logger.Info("media: session has no title yet"); Publish(null); return; }
+            if (title.Length == 0)
+            {
+                Logger.Info("media: session has no title yet");
+                Publish(ShowLoading ? new MediaState { Title = "", Source = PlaybackMath.FriendlySource(s.SourceAppUserModelId) } : null);
+                return;
+            }
             var artist = props?.Artist ?? "";
             if (artist.Length == 0) artist = props?.AlbumArtist ?? "";
             var album = props?.AlbumTitle ?? "";
