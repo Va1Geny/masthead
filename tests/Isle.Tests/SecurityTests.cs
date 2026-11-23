@@ -54,6 +54,17 @@ public class SecurityTests
     }
 
     [Fact]
+    public void Ssh_aliases_that_could_break_out_of_the_command_line_are_skipped()
+    {
+        foreach (var ok in new[] { "web-1", "prod.db", "deploy@bastion", "host:2222", "сервер" }) Assert.True(ServerInfo.SafeAlias(ok), ok);
+        foreach (var bad in new[] { "-oProxyCommand=calc", "web;calc", "a&b", "a|b", "a\"b", "x*", "!neg", "" }) Assert.False(ServerInfo.SafeAlias(bad), bad);
+
+        using var dir = new TempDir();
+        File.WriteAllText(dir.File("config"), "Host good web;calc -oProxyCommand=calc\n  HostName example.com\n");
+        Assert.Equal(["good"], ServerInfo.ParseSsh(dir.File("config"), dir.Path).Select(h => h.Alias));
+    }
+
+    [Fact]
     public async Task Hook_pipe_drops_clients_from_other_machines()
     {
         var name = "Isle.Agents.test." + Guid.NewGuid().ToString("N");

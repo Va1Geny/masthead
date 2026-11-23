@@ -16,7 +16,13 @@ public static class ServerInfo
 {
     static readonly char[] Sep = [' ', '\t', '='];
 
-    /// <summary>Concrete Host aliases (wildcards, negations and "-x" skipped) with HostName/User/Port; Include is followed (max depth 4).</summary>
+    /// <summary>
+    /// A concrete alias that is safe on a command line: letters, digits and . _ - @ : + only, not starting with '-'. Wildcards and
+    /// negations are not hosts; "-x" would be an ssh option and ';' starts a second command for wt.exe.
+    /// </summary>
+    public static bool SafeAlias(string a) => a.Length > 0 && a[0] != '-' && a.All(c => char.IsLetterOrDigit(c) || c is '.' or '_' or '-' or '@' or ':' or '+');
+
+    /// <summary>Concrete Host aliases (see <see cref="SafeAlias"/>) with HostName/User/Port; Include is followed (max depth 4).</summary>
     public static List<SshHost> ParseSsh(string path, string sshDir, int depth = 0)
     {
         var hosts = new List<SshHost>();
@@ -42,7 +48,7 @@ public static class ServerInfo
                 case "host":
                     Flush();
                     aliases = val.Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                        .Where(a => a.IndexOfAny(['*', '?', '!']) < 0 && !a.StartsWith('-')).Distinct().ToList();
+                        .Where(SafeAlias).Distinct().ToList();
                     break;
                 case "match": Flush(); break;
                 case "hostname": cur[0] ??= val; break;

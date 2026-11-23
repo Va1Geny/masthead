@@ -38,7 +38,8 @@ public sealed class ServersModule(IslandWindow island) : IModule, IDisposable
         if (Recheck is { } r) await r();
     }
 
-    static readonly HttpClient Http =new() { Timeout = TimeSpan.FromSeconds(8) };
+    // No credentials are configured; the cap bounds what a hostile status page can make Isle buffer.
+    static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(8), MaxResponseContentBufferSize = 1 << 20 };
     DispatcherTimer? _timer;
     bool _running, _busy;
 
@@ -107,10 +108,10 @@ public sealed class ServersModule(IslandWindow island) : IModule, IDisposable
         Compact = () => new IndicatorPill("Icon.Server", "", "", brush, center: true), CompactWidth = 40,
     };
 
-    /// <summary>wt.exe ssh ALIAS; a plain ssh console when Windows Terminal isn't installed. Aliases come from ssh_config (no leading '-').</summary>
+    /// <summary>wt.exe ssh ALIAS; a plain ssh console when Windows Terminal isn't installed. Aliases come from ssh_config (<see cref="ServerInfo.SafeAlias"/>).</summary>
     public static void OpenSsh(string alias)
     {
-        if (alias.StartsWith('-')) return;
+        if (!ServerInfo.SafeAlias(alias)) return;
         try { Start("wt.exe", alias); }
         catch (System.ComponentModel.Win32Exception)
         {
