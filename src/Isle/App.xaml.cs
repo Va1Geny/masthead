@@ -32,6 +32,10 @@ public partial class App : Application
             return;
         }
 
+        // Tools are started by bare name (git, gh, docker, wt.exe), and Windows looks in the current directory before PATH.
+        // Isle started from a shell inside a cloned repository would otherwise run that repository's git.exe.
+        Environment.CurrentDirectory = AppContext.BaseDirectory;
+
         _mutex = new Mutex(initiallyOwned: true, MutexName, out var isFirst);
         if (!isFirst)
         {
