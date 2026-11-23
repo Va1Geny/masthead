@@ -1,5 +1,5 @@
 <Project>
-  <!-- One version for Isle and every pack: the pack loader compares their informational versions (1.0.0+<commit>). -->
+  <!-- One version for every project. -->
   <PropertyGroup>
     <Version>1.0.0</Version>
   </PropertyGroup>

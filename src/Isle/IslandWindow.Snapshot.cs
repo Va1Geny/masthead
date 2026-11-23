@@ -24,7 +24,14 @@ public partial class IslandWindow
         {
             if (args.Length < 3) { Console.Error.WriteLine("usage: --snapshot <state|all> <out.png|dir> [--theme Dark|Light] [--lang en|uk] [--scale s]"); return 2; }
             Modules.Agents.AgentSnapshots.Register(SnapshotStates);
-            Packs.Load(); // adds the packs' states and settings sections
+            Modules.Media.MediaSnapshots.Register(SnapshotStates);
+            Modules.SystemMonitor.SystemMonitorSnapshots.Register(SnapshotStates);
+            Modules.Ports.PortsSnapshots.Register(SnapshotStates);
+            Modules.Projects.ProjectsSnapshots.Register(SnapshotStates);
+            Modules.Kube.KubeSnapshots.Register(SnapshotStates);
+            Modules.Usage.UsageSnapshots.Register(SnapshotStates);
+            Modules.Setup.SetupSnapshots.Register(SnapshotStates);
+            SnapshotStates["logs-pill"] = w => w.Pill.Set(new PillItem { Id = "logs.match", Priority = PillPriority.Transient, Width = 300, Peek = true, View = () => Modules.Logs.LogWatchModule.PillView("app.log", "ERROR 500 POST /api/orders: NullReferenceException in OrderService.Create") });
             Views.SettingsPanel.SettingsSnapshots.Register(SnapshotStates);
             var state = args[1];
             var output = args[2];

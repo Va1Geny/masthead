@@ -37,13 +37,6 @@ public sealed partial class Strings : INotifyPropertyChanged
 
     public static string T(string key, params object?[] args) => string.Format(T(key), args);
 
-    /// <summary>Merges extra text (the developer pack's) into both languages; later keys win.</summary>
-    internal static void Add(IReadOnlyDictionary<string, string> en, IReadOnlyDictionary<string, string> uk)
-    {
-        foreach (var (k, v) in en) En[k] = v;
-        foreach (var (k, v) in uk) Uk[k] = v;
-    }
-
     internal static IReadOnlyDictionary<string, string> English => En;
     internal static IReadOnlyDictionary<string, string> Ukrainian => Uk;
 }

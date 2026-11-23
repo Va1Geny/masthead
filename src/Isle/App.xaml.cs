@@ -18,16 +18,6 @@ public partial class App : Application
     /// <summary>True while running the --snapshot renderer.</summary>
     public static bool IsSnapshot { get; private set; }
 
-    /// <summary>Debug command-line flags packs add (flag → run with the arguments, returns the exit code), e.g. --transcribe.</summary>
-    internal static readonly Dictionary<string, Func<string[], Task<int>>> DebugCommands = [];
-    /// <summary>Asked before quitting; returning false cancels (Home: finish a screen recording first).</summary>
-    internal static readonly List<Func<Task<bool>>> BeforeQuit = [];
-    /// <summary>Settings links (<see cref="Views.SettingsPanel.SettingsActions.Open"/>): target → what to open, null while its module is off.</summary>
-    internal static readonly Dictionary<string, Func<Action?>> OpenTargets = new()
-    {
-        ["hooks"] = () => Host.Get<Modules.Agents.AgentsModule>("agents") is { } ag ? ag.OpenHooks : null,
-    };
-
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -39,18 +29,6 @@ public partial class App : Application
             System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
             Shutdown(IslandWindow.RunSnapshot(e.Args));
             return;
-        }
-
-        // Only this flag needs the packs before start-up (Home registers it); any other flag starts Isle normally.
-        if (e.Args.Length > 0 && e.Args[0] == "--transcribe")
-        {
-            Packs.Load();
-            if (DebugCommands.TryGetValue(e.Args[0], out var command))
-            {
-                IsSnapshot = true;
-                Dispatcher.InvokeAsync(async () => Shutdown(await command(e.Args)));
-                return;
-            }
         }
 
         _mutex = new Mutex(initiallyOwned: true, MutexName, out var isFirst);
@@ -86,7 +64,14 @@ public partial class App : Application
                 openSettings: () => OpenSettings(),
                 quit: Quit));
             Host.Register("agents", () => new Modules.Agents.AgentsModule(Island!));
-            Packs.Load();
+            Host.Register("media", () => new Modules.Media.MediaModule(Island!));
+            Host.Register("sysmon", () => new Modules.SystemMonitor.SystemMonitorModule(Island!));
+            Host.Register("ports", () => new Modules.Ports.PortsModule(Island!));
+            Host.Register("projects", () => new Modules.Projects.ProjectsModule(Island!));
+            Host.Register("logs", () => new Modules.Logs.LogWatchModule(Island!));
+            Host.Register("kube", () => new Modules.Kube.KubeModule(Island!));
+            Host.Register("usage", () => new Modules.Usage.UsageModule(Island!));
+            if (Island is { } island) Modules.Setup.SetupFlow.ShowOnFirstExpand(island);
             Host.Sync();
             if (Island is not null) Island.SettingsRequested += () => OpenSettings();
             Island?.Hotkeys.Register("toggle", "hotkey.toggle", "Win+Alt+Space", () => { if (Island is null) return; Island.SetHidden("user", false); Island.Toggle(); });
@@ -137,7 +122,7 @@ public partial class App : Application
     static void OpenFromSettings(string target)
     {
         if (Island is not { } w) return;
-        if (OpenTargets.TryGetValue(target, out var find) && find() is { } open) open();
+        if (target == "hooks" && Host.Get<Modules.Agents.AgentsModule>("agents") is { } agents) agents.OpenHooks();
         else w.ShowToast(Strings.T("set.moduleOff"));
     }
 
@@ -153,8 +138,6 @@ public partial class App : Application
         _quitting = true;
         try
         {
-            foreach (var ask in BeforeQuit)
-                if (!await ask()) return;
             // Leave the native Closing callback before WPF begins shutting down its windows.
             await Dispatcher.Yield(DispatcherPriority.Normal);
             if (Island is not null) Island.Closing -= OnIslandClosing;

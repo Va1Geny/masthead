@@ -9,9 +9,7 @@ use std::{
 
 fn main() {
     let args: Vec<_> = env::args_os().skip(1).collect();
-    let wait = args
-        .first()
-        .is_some_and(|arg| arg == "--snapshot" || arg == "--transcribe");
+    let wait = args.first().is_some_and(|arg| arg == "--snapshot");
 
     match launch(&args, wait) {
         Ok(0) => (),

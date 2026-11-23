@@ -30,9 +30,6 @@ public sealed class SettingsView : Grid, ITabView
 {
     public static readonly string[] Sections = ["general", "options", "about"];
 
-    /// <summary>Option groups and rows the packs add (view, add-a-group), shown before the shell's own.</summary>
-    internal static readonly List<Action<SettingsView, Action<string>>> PackOptions = [];
-
     static Core.Settings S => Core.Settings.Current;
 
     readonly SettingsActions _a;
@@ -200,7 +197,27 @@ public sealed class SettingsView : Grid, ITabView
                 _scroll.ScrollToVerticalOffset(group.TranslatePoint(new Point(), _page).Y);
             }
         };
-        foreach (var add in PackOptions) add(this, OptionGroup);
+
+        OptionGroup("setup");
+        Row("set.setupAgain", Ui.TextButton(Strings.T("set.setupAgain.run"), "FlatButton", new Thickness(12, 4, 12, 4), () => { if (App.Island is { } w) Modules.Setup.SetupFlow.Show(w); }, "setup again"), "set.setupAgain.hint");
+
+        OptionGroup("sysmon");
+        Row("set.sysmonAlerts", OptSwitch("sysmon.alerts", true, restart: "sysmon"), "set.sysmonAlerts.hint");
+
+        OptionGroup("ports");
+        Row("set.portsNotify", OptSwitch("ports.notify", true, restart: "ports"), "set.portsNotify.hint");
+
+        OptionGroup("projects");
+        Row("set.projectsPaths", OptText("projects.paths", @"C:\Users\me\Projects\app", "projects"), "set.projectsPaths.hint", wide: true);
+        Row("set.projectsBuilds", OptSwitch("projects.builds", true, restart: "projects"), "set.projectsBuilds.hint");
+        Row("set.projectsToken", SecretField("projects.githubToken", restart: "projects"), "set.projectsToken.hint");
+
+        OptionGroup("logs");
+        Row("set.logsFiles", OptText("logs.files", @"C:\Users\me\Projects\api\logs\app.log", "logs"), "set.logsFiles.hint", wide: true);
+        Row("set.logsPattern", OptText("logs.pattern", Modules.Logs.LogWatchModule.DefaultPattern, "logs", Modules.Logs.LogWatchModule.DefaultPattern), "set.logsPattern.hint", wide: true);
+
+        OptionGroup("kube");
+        Row("set.kubePattern", OptText("kube.prodPattern", Modules.Kube.KubeConfig.DefaultPattern, "kube", Modules.Kube.KubeConfig.DefaultPattern), "set.kubePattern.hint", wide: true);
 
         OptionGroup("agents");
         Row("set.agentsApprovals", OptSwitch("agents.approvals", true), "set.agentsApprovals.hint");

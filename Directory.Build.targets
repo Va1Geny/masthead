@@ -1,9 +1,0 @@
-<Project>
-  <!-- Packs (IslePack=true): after a build, copy the pack and its dependencies into Isle's bin so Isle run from there loads them. -->
-  <Target Name="CopyPackToIsle" AfterTargets="Build" Condition="'$(IslePack)' == 'true'">
-    <ItemGroup>
-      <PackFiles Include="$(OutDir)**\*" Exclude="$(OutDir)*.deps.json;$(OutDir)*.runtimeconfig.json" />
-    </ItemGroup>
-    <Copy SourceFiles="@(PackFiles)" DestinationFiles="@(PackFiles->'$(MSBuildThisFileDirectory)src\Isle\bin\$(Configuration)\net10.0-windows\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
-  </Target>
-</Project>
