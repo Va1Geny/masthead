@@ -10,7 +10,7 @@ public sealed class ServersView : Grid, ITabView
 {
     readonly Func<ServersData> _load;
     readonly IslandWindow _island;
-    readonly StackPanel _rows = new();
+    readonly StackPanel _rows = new() { Margin = new Thickness(0, 0, 0, 8) };
     bool _busy;
 
     public ServersView(Func<ServersData> load, IslandWindow island)

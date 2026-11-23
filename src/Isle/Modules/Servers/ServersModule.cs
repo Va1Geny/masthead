@@ -45,7 +45,7 @@ public sealed class ServersModule(IslandWindow island) : IModule, IDisposable
     public void Start()
     {
         _running = true;
-        island.AddTab(new TabInfo(TabId, "tab.servers", "Icon.Globe", () => new ServersView(Load, island), 98));
+        island.AddTab(new TabInfo(TabId, "tab.servers", "Icon.Globe", () => new ServersView(Load, island), 99));
         _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMinutes(5) };
         _timer.Tick += async (_, _) => await RefreshAsync();
         _timer.Start();
@@ -61,7 +61,7 @@ public sealed class ServersModule(IslandWindow island) : IModule, IDisposable
             var s = Settings.Current;
             var sso = s.OptBool("servers.ssoPill", true) ? await Task.Run(() => Load().SsoExpiry) : null;
             if (!_running) return;
-            if (sso is { } e && ServerInfo.SsoState(e, DateTimeOffset.Now, SsoWarn) != "ok") island.Pill.Set(SsoPill(e)); else island.Pill.Remove(SsoId);
+            if (sso is { } e && ServerInfo.SsoPillDue(e, DateTimeOffset.Now, SsoWarn)) island.Pill.Set(SsoPill(e)); else island.Pill.Remove(SsoId);
 
             var items = WatchItem.Parse(s.Opt("servers.watch"));
             Results = items.Select(i => (i, (List<string>?)null)).ToList();
@@ -145,7 +145,7 @@ static class ServersSnapshots
     {
         var view = new ServersView(() => d, w);
         view.Show(d, results, new Dictionary<string, bool> { ["web-1"] = true, ["db-staging"] = false });
-        w.AddTab(new TabInfo(ServersModule.TabId, "tab.servers", "Icon.Globe", () => view, 98));
+        w.AddTab(new TabInfo(ServersModule.TabId, "tab.servers", "Icon.Globe", () => view, 99));
         w.Expand(ServersModule.TabId);
     }
 }

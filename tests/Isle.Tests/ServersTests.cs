@@ -70,6 +70,33 @@ public class ServersTests
     }
 
     [Fact]
+    public void Sso_pill_skips_long_expired()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var w = TimeSpan.FromMinutes(30);
+        Assert.True(ServerInfo.SsoPillDue(now.AddMinutes(10), now, w));
+        Assert.True(ServerInfo.SsoPillDue(now.AddHours(-23), now, w));
+        Assert.False(ServerInfo.SsoPillDue(now.AddHours(-25), now, w));
+        Assert.False(ServerInfo.SsoPillDue(now.AddHours(3), now, w));
+    }
+
+    [Fact]
+    public async Task Tls_check_times_out_on_silent_host()
+    {
+        var l = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        l.Start();
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
+            var item = new WatchItem("127.0.0.1:" + ((System.Net.IPEndPoint)l.LocalEndpoint).Port, false, true, false);
+            using var http = new System.Net.Http.HttpClient();
+            var bad = await item.Run(http, 14, cts.Token).WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.Equal(["tls n/a"], bad);
+        }
+        finally { l.Stop(); }
+    }
+
+    [Fact]
     public void Azure_default_subscription_and_user()
     {
         var a = ServerInfo.ParseAzure("﻿" + """{"subscriptions":[{"name":"Other","isDefault":false},{"name":"Main","isDefault":true,"user":{"name":"me@example.com","type":"user"}}]}""");

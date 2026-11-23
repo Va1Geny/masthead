@@ -121,6 +121,10 @@ public static class ServerInfo
         return all.Count == 0 ? null : all.Max();
     }
 
+    /// <summary>Pill only for "soon" or an expiry within the last 24 h; older expiries show in the tab only.</summary>
+    public static bool SsoPillDue(DateTimeOffset expires, DateTimeOffset now, TimeSpan warn) =>
+        SsoState(expires, now, warn) is var st && st != "ok" && (st != "expired" || now - expires <= TimeSpan.FromHours(24));
+
     public static string SsoState(DateTimeOffset expires, DateTimeOffset now, TimeSpan warn) =>
         expires <= now ? "expired" : expires - now <= warn ? "soon" : "ok";
 
@@ -248,7 +252,7 @@ public sealed record WatchItem(string Target, bool Http, bool Tls, bool Status)
                 await c.ConnectAsync(u.Host, u.Port, ct);
                 // ponytail: accepts any chain so the expiry can still be read; trust problems are not reported
                 using var ssl = new SslStream(c.GetStream(), false, (_, _, _, _) => true);
-                await ssl.AuthenticateAsClientAsync(u.Host);
+                await ssl.AuthenticateAsClientAsync(new SslClientAuthenticationOptions { TargetHost = u.Host }, ct);
                 if (ssl.RemoteCertificate is { } cert)
                 {
                     var after = new System.Security.Cryptography.X509Certificates.X509Certificate2(cert).NotAfter.ToUniversalTime();
