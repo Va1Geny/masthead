@@ -70,6 +70,7 @@ public partial class App : Application
             Host.Register("projects", () => new Modules.Projects.ProjectsModule(Island!));
             Host.Register("logs", () => new Modules.Logs.LogWatchModule(Island!));
             Host.Register("kube", () => new Modules.Kube.KubeModule(Island!));
+            Host.Register("servers", () => new Modules.Servers.ServersModule(Island!));
             Host.Register("usage", () => new Modules.Usage.UsageModule(Island!));
             if (Island is { } island) Modules.Setup.SetupFlow.ShowOnFirstExpand(island);
             Host.Sync();

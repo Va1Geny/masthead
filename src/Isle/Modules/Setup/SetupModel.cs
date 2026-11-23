@@ -30,7 +30,7 @@ public static class SetupModel
     public static readonly SetupItem[] Items =
     [
         new("sysmon", "tab.sysmon"), new("ports", "tab.ports"), new("projects", "tab.projects"), new("agents", "tab.agents"), new("usage", "tab.usage"),
-        new("media", "setup.item.media", Alert: true), new("kube", "setup.item.kube", Alert: true), new("logs", "setup.item.logs", Alert: true),
+        new("servers", "tab.servers", Online: true), new("media", "setup.item.media", Alert: true), new("kube", "setup.item.kube", Alert: true), new("logs", "setup.item.logs", Alert: true),
     ];
 
     /// <summary>Values found on this PC per option (cheap checks only: no process is started).</summary>
