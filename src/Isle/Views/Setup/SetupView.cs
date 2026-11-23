@@ -136,13 +136,4 @@ public sealed class SetupView : Grid
         _step = 1;
         Render();
     }
-
-    /// <summary>Stand-in for the Usage tab when the chosen agent is Codex (its usage comes later).</summary>
-    internal static FrameworkElement ComingSoon()
-    {
-        var t = Ui.Dim(Strings.T("setup.codexSoon"), wrap: true);
-        t.HorizontalAlignment = HorizontalAlignment.Center;
-        t.VerticalAlignment = VerticalAlignment.Center;
-        return new Grid { Children = { t } };
-    }
 }

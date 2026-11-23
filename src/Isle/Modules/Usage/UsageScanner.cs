@@ -258,9 +258,11 @@ internal static class UsageScanner
 }
 
 /// <summary>Holds the persisted scan state; one refresh at a time (the view guards that).</summary>
-public sealed class UsageService(string projectsDir, string storePath)
+public sealed class UsageService(string projectsDir, string storePath, string? codexDir = null, Func<string?>? agent = null)
 {
-    UsageData? _data;
+    UsageData? _data, _codex;
+    // "claude" = Claude only, "codex" = Codex only, anything else = both merged; read at every refresh.
+    string CodexStore => Path.Combine(Path.GetDirectoryName(storePath)!, "usage-codex.json");
 
     /// <summary>Last finished report (null before the first scan).</summary>
     public UsageReport? Report { get; private set; }
@@ -269,11 +271,22 @@ public sealed class UsageService(string projectsDir, string storePath)
     public Task<UsageReport> RefreshAsync(CancellationToken ct) => Task.Run(() =>
     {
         var sw = Stopwatch.StartNew();
-        _data ??= UsageData.Load(storePath);
-        var stats = UsageScanner.Scan(projectsDir, _data, ct);
-        if (stats.FilesChanged > 0) JsonStore.Save(storePath, _data);
-        Report = UsageReport.Build(_data, DateTimeOffset.Now);
-        Logger.Info($"usage scan: {stats.Files} files ({stats.FilesChanged} changed), {stats.Messages} new messages, {sw.ElapsedMilliseconds} ms");
-        return Report;
+        var which = agent?.Invoke();
+        var merged = new UsageData();
+        if (which != "codex")
+        {
+            _data ??= UsageData.Load(storePath);
+            var stats = UsageScanner.Scan(projectsDir, _data, ct);
+            if (stats.FilesChanged > 0) JsonStore.Save(storePath, _data);
+            foreach (var (k, v) in _data.Files) merged.Files[k] = v;
+            Logger.Info($"usage scan: {stats.Files} files ({stats.FilesChanged} changed), {stats.Messages} new messages, {sw.ElapsedMilliseconds} ms");
+        }
+        if (codexDir is not null && which != "claude")
+        {
+            _codex ??= UsageData.Load(CodexStore);
+            if (CodexScanner.Scan(codexDir, _codex, ct)) JsonStore.Save(CodexStore, _codex);
+            foreach (var (k, v) in _codex.Files) merged.Files[k] = v;
+        }
+        return Report = UsageReport.Build(merged, DateTimeOffset.Now);
     }, ct);
 }

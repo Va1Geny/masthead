@@ -42,6 +42,7 @@ static class UsageSnapshots
                 S("docs-site", 26, 7, T(800, 4_300, 220_000, 31_000), "claude-haiku-5-5"),
                 S("web-app", 29, 305, T(33_000, 150_000, 19_000_000, 720_000, 90_000), "claude-opus-5-5"),
                 S("mobile-app", 50, 41, T(3_000, 26_000, 2_900_000, 150_000), "claude-fable-9-9"),
+                S("weather-api", 70, 18, T(210_000, 41_000, 1_600_000, 0), "gpt-5-codex"),
             ],
             now.AddMinutes(-1));
     }
