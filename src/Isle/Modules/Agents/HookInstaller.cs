@@ -12,8 +12,8 @@ namespace Isle.Modules.Agents;
 public sealed record HookTarget(string Agent, string ConfigPath)
 {
     public string Name => AgentText.AgentName(Agent);
-    /// <summary>The agent looks installed (its config folder exists).</summary>
-    public bool Detected => Directory.Exists(Path.GetDirectoryName(ConfigPath));
+    /// <summary>The agent looks installed (its config folder exists). Gemini needs settings.json itself: Antigravity also creates ~/.gemini.</summary>
+    public bool Detected => Agent == "gemini" ? File.Exists(ConfigPath) : Directory.Exists(Path.GetDirectoryName(ConfigPath));
 
     public static HookTarget Claude()
     {

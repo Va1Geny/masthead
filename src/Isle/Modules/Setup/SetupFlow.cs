@@ -64,8 +64,8 @@ static class SetupSnapshots
 {
     public static void Register(Dictionary<string, Action<IslandWindow>> states)
     {
-        // fixed data: a PC with Claude Code and Docker; nothing is read from the machine
-        var found = SetupModel.Questions.ToDictionary(q => q.Option, q => q.Choices.Where(c => c.Value is "claude" or "docker").Select(c => c.Value).ToHashSet());
+        // fixed data: everything found (widest chip rows); nothing is read from the machine
+        var found = SetupModel.Questions.ToDictionary(q => q.Option, q => q.Choices.Where(c => c.Value != SetupModel.None).Select(c => c.Value).ToHashSet());
         void Show(IslandWindow w, int step)
         {
             var answers = SetupModel.Preselect(found);
