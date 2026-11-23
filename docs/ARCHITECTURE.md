@@ -4,47 +4,23 @@ Hand-written module map. One paragraph per module: what it owns, public surface,
 Keep it short and current (update at the end of every milestone).
 
 ## Process shape
-One WPF process: the shell `Isle.exe` (`src/Isle`, `net10.0-windows`, no WinRT) plus optional packs loaded from its
-folder. `App.OnStartup` installs exception handlers, takes the single-instance mutex, applies language and render mode,
-shows `IslandWindow`, and only after the first frame (`DispatcherPriority.ApplicationIdle`) registers the shell's
-modules (tray, agents), loads the packs and calls `ModuleHost.Sync()`.
+One WPF process, `Isle.exe` (`src/Isle`, `net10.0-windows10.0.19041.0`). `App.OnStartup` installs exception handlers,
+takes the single-instance mutex, applies language and render mode, shows `IslandWindow`, and only after the first frame
+(`DispatcherPriority.ApplicationIdle`) registers the modules (tray, agents, media and the developer modules below) and
+calls `ModuleHost.Sync()`.
 Static access points: `App.Host` (modules), `App.Island` (the window), `Settings.Current`.
-
-## Packs
-| Project | DLL | Contents | Needs |
-|---|---|---|---|
-| `src/Isle.Music` | `Isle.Music.dll` | `media` module: media session, music pill + track banner, accent from the art | WinRT |
-| `src/Isle.Home` | `Isle.Home.dll` | every community module, the Music tab and lyrics | Isle.Music, WinRT, NuGet (NAudio, Whisper, PdfPig, ZXing, Vortice, System.Management) |
-| `src/Isle.Dev` | `Isle.Dev.dll` | developer modules | Vortice.DXGI |
-
-Packs keep the namespaces and folder layout of `src/Isle`; Isle never references them. `Core/Packs.Load()` runs after
-the shell's registrations in `App.StartModules`, in `RunSnapshot` and for debug flags: for Music, Home, Dev in that
-order, if exactly `Isle.<Name>.dll` exists in `AppContext.BaseDirectory`, its `AssemblyInformationalVersion`
-(`1.0.0+<commit>`, one `Version` in `Directory.Build.props`) equals Isle's and every `Isle.*` pack it references has
-registered, it calls `Isle.<Name>.Pack.Register()` by reflection; otherwise, or on any exception, it logs and goes on.
-A version without `+<commit>` logs one warning. Isle exposes internals to the packs with `InternalsVisibleTo`.
-Pack dependencies sit loose next to Isle.exe; `Assembly.LoadFrom` resolves them from there. `Directory.Build.targets`
-copies each pack's build output into Isle's bin so Isle run from there loads all packs.
-
-Hooks a pack registers into (all static): `ModuleHost.Register`, `Strings.Add(en, uk)`,
-`IslandWindow.SnapshotStates`, `SettingsView.AddModules(before, ids)` (falls back to before "tray"),
-`SettingsView.PackOptions` (option groups and rows; `Row`, `OptSwitch`, `Choice`, `TextField`, `SecretField`, `Link`,
-`Save` are internal), `App.OpenTargets` (settings links), `App.BeforeQuit` (Home: finish a recording),
-`App.DebugCommands` (Home: `--transcribe`). Music → Home: `MediaModule.Started` / `Stopping`, `Source`, `PillLyric`
-(a `LyricLine` delegate), `HasTab` and `RefreshPill`. Existing public window API covers the rest (idle-pill slots,
-`Tabs.Mascot`, `FileDropTarget`, `Theme.SetAccent`).
 
 ## Shell
 - **App** (`App.xaml.cs`) — start-up/shutdown, single instance (`Local\Isle.SingleInstance.*` mutex), global exception
   logging, `ToggleIsland()`, `Quit()`, repositions the island on resume from sleep.
 - **IslandWindow** (`IslandWindow.xaml(.cs)` + partials) — the only always-present window. Fixed size (`BaseWidth×BaseHeight`
-  × UI scale), transparent, topmost, `WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE`, optional `WS_EX_TRANSPARENT` (click-through).
+  × UI scale), transparent, topmost, `WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE`, no click-through.
   `Reposition()` puts it top-centre of the selected monitor (physical pixels). Partials:
-  - `.Motion.cs` — springs (`Core/Spring`) for width/height/expansion/edge-shift stepped on `CompositionTarget.Rendering`
+  - `.Motion.cs` — springs (`Core/Spring`) for width/height/expansion stepped on `CompositionTarget.Rendering`
     only while moving; `ApplyShape()` writes the clip, shadow paths and content opacities (no layout, no window resize).
   - `.Hover.cs` — 30 ms cursor timer (runs only while engaged), hover intent/leave delay, `Expand(tab, sticky)`,
     `Collapse()`, `Toggle()`, `HoldOpen/ReleaseOpen(key)`, keyboard focus hand-over (`AcquireFocus`, `PasteTarget`),
-    edge auto-hide, `SetHidden(reason, bool)` (user / fullscreen / excluded), foreground checks.
+    `SetHidden(reason, bool)` (user / fullscreen / excluded), foreground checks.
   - `.Content.cs` — pill (`Pill` = `Core/PillQueue`; primary view + compact secondary), tabs (`AddTab(TabInfo)`,
     `RemoveTab`, `SelectTab`, `RequestTab`; views created lazily, `ITabView.OnShown/OnHidden`), "more" overlay, `ShowToast`.
   - `.Snapshot.cs` — `--snapshot <state|all> <out.png|dir> [--theme] [--lang] [--scale]`; `SnapshotStates` registry.
@@ -69,104 +45,29 @@ Hooks a pack registers into (all static): `ModuleHost.Register`, `Strings.Add(en
 - **Spring** — damped spring value used by the island's motion.
 - **PillQueue / PillItem / PillPriority** — what the collapsed pill shows; pure `Select()` rule (tested).
 - **TabInfo / ITabView** — tab registration record and the shown/hidden callbacks for tab views.
-- **ForegroundWatcher** — `SetWinEventHook(EVENT_SYSTEM_FOREGROUND)`; `LastExternal` (paste target), `IsFullscreen`, `ProcessName`.
-- **ClipboardOps** (Home pack) — snapshot/restore the clipboard, `SendCtrl(vk)`, `CopySelectionAsync`, `PasteTextAsync`,
-  and `Quiet(span)` (clipboard history ignores changes meanwhile). Used by the clipboard module and AI text actions.
-- **Packs** — the pack loader (see Packs).
+- **ForegroundWatcher** — `SetWinEventHook(EVENT_SYSTEM_FOREGROUND)`; `LastExternal`, `IsFullscreen`, `ProcessName`.
 - **Memory** — `TrimSoon()`: GC + `EmptyWorkingSet` after start-up and after heavy features.
 
 ## Styles / Views
 - `Styles/Theme.xaml` — the flat control set (FlatButton, AccentButton, GhostButton, IconButton, Switch, Chip, slider,
   FlatTextBox, scrollbars, FlatList, TabButton, Card, text styles). `Styles/Icons.xaml` — original 24×24 line icons.
 - `Views/Icon` (draws an icon geometry), `Views/TabBar` (tab strip + sliding indicator + more + gear), `Views/IdlePillView`
-  (optional clock, left/right slots for mascot and weather).
+  (first-use hint).
 
 ## Modules
-Shell (`src/Isle/Modules`): Agents, Hotkeys, Tray. Music pack: Media. Home pack: the rest below. Developer pack: see
-Developer modules.
+Shell (`src/Isle/Modules`): Agents, Hotkeys, Tray, Media (Music). Developer modules: see below.
 
-- **Media** (`media`, Music pack, `Modules/Media`) — `MediaSession` wraps GSMTC (manager + chosen session events,
-  marshalled to the UI thread) and exposes `IMediaSource` (`Current: MediaState`, `Changed`, `PlayPause/Next/Previous/Seek`).
-  `MediaModule` puts the `music` pill item (`Views/Music/MusicPill`, compact equalizer for the side slot), the
-  `music.track` banner and sets `Theme.SetAccent` from the art. Without Home (`HasTab` false) the pill is a
-  `MiniPlayerPill` (art, title — artist, play/pause button) and no pill item or banner names the "music" tab. Pure helpers: `PlaybackMath` (extrapolation, formatting,
-  app names, session choice), `ArtColors`. `FakeMediaSource` + `MediaSnapshots` provide snapshot states.
-- **Music tab** (Home pack, `Modules/Lyrics/MusicTab`) — on `MediaModule.Started`: the Music tab (`Views/Music/MusicView`),
-  a `LyricsTracker`, the pill's lyric line (`PillLyric`) and prefetching. Options: `lyrics.inPill`, `lyrics.alwaysFetch`.
-- **Lyrics** (`lyrics`, `Modules/Lyrics`) — `LyricsService` (LRCLIB get→search, memory + disk cache in
-  `%AppData%\Isle\lyrics\<hash>.json`, lazy HttpClient disposed after 2 min idle, `ILyricsHttp` seam), `Lrc` parser,
-  `LyricsTracker` (lyrics for the current track, fetched only on demand).
-- **Timers & reminders** (`timers`, `Modules/Timers`, `Modules/Reminders`) — `TimersController` (all operations,
-  `Submit(text)` → timer or reminder, persistence to `timers.json` / `reminders.json`, `FormatDue/FormatRepeat`),
-  `TimersModule` (wake-up timer aimed at `NextWake`, pill item `timer`, banners `t:<id>` / `r:<id>`, sound + pulse,
-  publishes `TimerFinished`). Pure logic: `DurationParser`, `TimerBook` (+ stopwatch), `ReminderParser` (EN/UK rules),
-  `RepeatRule`, `ReminderBook`. Views: `Views/Timers/TimersView`, `TimerPill` (+ `Ring`), `TimerDoneBanner`, `ReminderBanner`.
-  The command bar (M8) uses `Controller.AddTimer` / `AddReminder`.
-- **Notes** (`notes`, `Modules/Notes`) — `NotesStore` (notes.json: notes with XAML + plain shadow, one-level folders,
-  pins, `Search`, `Delete`/`Restore` for Undo), `NotesModule` (tab, hotkey `newNote` = Win+Alt+N → `QuickCapture`).
-  View `Views/Notes/NotesView` (list + RichTextBox editor; `Serialize`/`Load` helpers; autosave 500 ms).
-- **Control Center** (`control`, `Modules/ControlCenter`) — `ControlModule` (tab; `NetworkChanged` from
-  `NetworkChange.NetworkAddressChanged`), `ControlServices` (lazy: `AudioVolume` Core Audio COM, `Radios` WinRT,
-  `Brightness` WMI, VPN environment), `WindowsTheme` (HKCU Personalize + WM_SETTINGCHANGE broadcast),
-  `BluetoothDevices` (WinRT list + KS one-shot reconnect/disconnect), `VpnDetector` (pbk profiles, client detection, CLI
-  runner). COM interfaces in `CoreAudio.cs`. View `Views/Control/ControlView` (tiles, sliders, in-panel overlay lists).
-- **Live events** (`live`, `Modules/LiveEvents`) — `LiveEventsModule` owns small `ILiveSource`s, each switched by option
-  `live.<name>` and constructed only when on: `DownloadsSource` (FileSystemWatcher on Downloads, `DownloadDetector`
-  for Chrome/Edge/Firefox partial files, `SpeedMeter`), `MicCameraSource` (`RegistryWatcher` on the consent store,
-  `ConsentStore` parser), `ObsSource` (WebSocket v5, `ObsAuth`), `SteamSource` (`Vdf` + `Steam` manifest parser, file
-  watcher), `VpnIndicatorSource` (`NetworkChange`), `KeyboardLayoutSource` (foreground events + 500 ms check),
-  `CapsLockSource` (WH_KEYBOARD_LL), `NotificationsSource` (unavailable unpackaged). They talk to the pill through
-  `ILiveSink` (`PillSink`); views `Views/Live/IndicatorPill`. Options `live.obsPort/obsPassword/downloadsFolder`.
-- **Clipboard** (`clipboard`, `Modules/Clipboard`) — `ClipboardService` (AddClipboardFormatListener on a message
-  window, `ClipPrivacy`: exclusion formats + excluded apps), `ClipStore` (`clipboard.json`, text DPAPI-encrypted, images
-  as PNG in `clip\`, dedupe, pins, limit `clip.limit`), `ClipboardModule` (tab `Views/Clipboard/ClipboardView`; click =
-  `ClipboardOps.PasteTextAsync`/image paste into `PasteTarget`).
-- **Shelf** (`shelf`, `Modules/Shelf`) — `ShelfStore` (`shelf.json`, references only, missing-file flag), `ShelfModule`
-  (tab `Views/Shelf/ShelfView`, drag-out with `DoDragDrop` FileDrop, option `shelf.removeAfterDrop`); drops arrive via
-  `IslandWindow.Drop.cs` (expands to the Shelf on drag-over).
-- **Command bar** (`commands`, `Modules/Commands`) — `CommandModule` (hotkey `commandBar` = Ctrl+Alt+Space → full-panel
-  overlay `Views/Commands/CommandBarView`, 80 ms debounce, providers run off the UI thread). Providers (`ICommandProvider`):
-  `AppsProvider` (`AppIndex`: Start Menu shortcuts + recent files + `cmd.folders`, cached `index.json`; `Fuzzy` matcher),
-  `CalculatorProvider` (`Calculator` + `Units`), `CurrencyProvider` (`CurrencyParser`, `CurrencyService` with
-  `NbuRatesSource`, `rates.json`), `TimerProvider` (reuses `TimersController`), `SystemProvider` (confirm before
-  lock/sleep/restart/shutdown/recycle bin; Settings pages), `WebProvider` (`g` search, URLs, `?` → `AskAi`).
-- **Screen tools** (`tools`, `Modules/Tools`) — `ToolsModule` (hotkeys screenshot Win+Alt+S, capture Win+Alt+Q, colour
-  picker Win+Alt+C, record Win+Alt+R; one tool at a time, island hidden from captures). `ScreenGrab` (physical-pixel
-  capture across mixed-DPI monitors), `Views/Tools/SelectionOverlay` (region/window/fullscreen pick, loupe for the
-  colour picker), `Views/Tools/MarkupWindow` (pen, highlighter, arrow, shapes, text, pixelate, undo/redo, copy/save),
-  `QrReader` (ZXing) / `OcrReader` (Windows.Media.Ocr), `Recorder` (Windows.Graphics.Capture + Media Foundation H.264
-  MP4, WASAPI system audio/mic via NAudio, 30 fps ≤ 1080p). Tab `Views/Tools/ToolsView` (tools, OCR/QR results, colour
-  history `tools.colors`). Files go to `Pictures\Isle\` and `Videos\Isle\`.
+- **Media** (`media`, `Modules/Media`) — `MediaSession` wraps GSMTC (manager + chosen session events, marshalled to the
+  UI thread; a session without a title yet publishes an empty-title state) and exposes `IMediaSource` (`Current:
+  MediaState`, `Changed`, `PlayPause/Next/Previous/Seek`). `MediaModule` shows the mini player (`Views/Music/MiniPlayerPill`:
+  art, title — artist, play/pause; "App — loading…" while the session has no track) as the `music` pill item (compact
+  equalizer for the side slot) and the `music.track` banner, and sets `Theme.SetAccent` from the art. The mini player
+  stays while paused. Pure helpers: `PlaybackMath`, `ArtColors`. `FakeMediaSource` + `MediaSnapshots` provide snapshot states.
 - **Hotkeys** (`HotkeyService`, owned by the island, not a module) — `Register(id, titleKey, default, pressed, released?)`,
   `Rebind`, `List()` for the settings table; user overrides in `Settings.Hotkeys`; failures logged, never fatal.
   Hold-hotkeys poll the key state at 30 ms only while held. Default: `toggle` = Win+Alt+Space.
 - **Tray** (`tray`) — notification-area icon (`Shell_NotifyIcon`, hidden message window), native menu:
   Show/Hide, Settings, Start with Windows, Quit. Icon drawn by `TrayIcon.Render`. Re-adds itself on `TaskbarCreated`.
-
-- **Weather** (`weather`, `Modules/Weather`) — `WeatherModule` (tab, idle-pill right slot `WeatherPill`, rain banner
-  `weather.rain`, 30-min refresh timer only once a place is set), `WeatherService` (last report + `weather.json` cache,
-  `IWeatherSource` seam), `OpenMeteoSource` (forecast, geocoding, geojs.io IP location), pure `OpenMeteoParser`,
-  `WeatherCodes` (WMO → text/icon), `WeatherFormat`, `RainAlerts`. View `Views/Weather/WeatherView` (report with 24 h /
-  7 days, setup with search + option chips). Options: `weather.city/lat/lon/ip/units/inPill/rainAlerts/lastAlert`.
-
-- **AI chat** (`ai`, `Modules/AiChat`) — `AiModule` owns chats, cancellation and one active request at a time.
-  `ChatStore` stores up to 100 chats in `chats.json`. `CodexChatProvider` and `ClaudeCodeProvider` use `ChatCli`
-  to run the installed CLIs in background processes with redirected input and output. Codex uses its stdio app-server
-  for streaming, with a one-shot CLI fallback before sending when the installed configuration is incompatible. `ai.provider` selects
-  `codex` or `claude`. `Attachments` handles file input (file →
-  image/PDF/text attachment, docx/xlsx via Open XML zip, PDF text via PdfPig), `Markdown` (block + inline parser).
-  Views `Views/AiChat/AiChatView` (header, bubbles, chips, input, overlays) and `MarkdownView` (renderer).
-  Text actions: hotkey `textActions` (Win+Alt+A) → `ClipboardOps.CopySelectionAsync` → `AiPopupView` (island overlay)
-  with `TextActions` prompts. Copy is available for usable results. Replace uses `ClipboardOps.PasteTextAsync`
-  after a complete response for the full selection. Command bar
-  `? question` → `AskAi` on the EventBus → `AiModule.Ask` → the same popup; "Open in chat" stores it as a chat.
-
-- **Voice to text** (`voice`, `Modules/Voice`) — `VoiceModule` (hold hotkey `voice` = Win+Alt+V: press → `MicCapture`
-  + `Views/Voice/VoicePill` level waveform; release → `WhisperEngine.TranscribeAsync` → `ClipboardOps.PasteTextAsync`
-  into the window that was active; first press without a model → `ModelDownloader` with a progress pill). `MicCapture`
-  (NAudio WASAPI → mono → 16 kHz), `AudioMath` (level, silence, resample), `WhisperEngine` (`ITranscriber`; Whisper.net
-  loaded on demand, unloaded 2 min after use), `LanguagePick`, `TranscriptText`, `WhisperModels` (base/small, URL, size,
-  SHA-256; files in `%AppData%\Isle\models\`). `VoiceSelfTest` = debug CLI `--transcribe`. Options `voice.model`, `voice.lang`.
 
 - **Agents** (`agents`, `Modules/Agents` + `src/Isle.Hook`) — `Isle.Hook.exe <claude|codex> [--timeout s] [--async]`
   is registered as a command hook, reads the hook JSON from stdin and sends it over the named pipe
@@ -177,15 +78,9 @@ Developer modules.
   plan + confirm), pill `AgentPill` (dot: working / waiting / done check). `HookInstaller` (plan, install, remove,
   backup; helper copied to `%AppData%\Isle\bin`). Options `agents.approvals`, `agents.timeout`.
 
-- **Characters** (`characters`, `Modules/Characters`) — `CharactersModule` (panel mascot via `IslandWindow.Tabs.Mascot`,
-  optional idle-pill mascot via `IdleView.LeftSlot`, gallery overlay `Views/Characters/CharacterGallery`; subscribes to
-  `MusicPlaying` (media module) and `TimerFinished`), `CreatureBrain` (pure mood + motion math), `CreatureDesign`
-  (Pebb / Sprig / Kubo frozen shapes), `Views/Characters/CreatureView` (OnRender drawing, own adaptive clock, paused
-  while hidden). Options `chars.kind`, `chars.inPill`, `chars.sleepMin`.
-
 ### Developer modules
-`src/Isle.Dev` → `Isle.Dev.dll` (see Packs). `Pack.Register` merges `DevStrings`, registers the modules (on by default)
-with their settings rows and snapshot states. Helpers: `Core/Cli` (run a console tool, capture stdout, timeout),
+Registered in `App.StartModules`, on by default; their settings rows are in `SettingsView.OptionsPage` and their snapshot
+states in `IslandWindow.RunSnapshot`. Helpers: `Core/Cli` (run a console tool, capture stdout, timeout),
 `Core/ProcessOps` (end a process if its name still matches, open with the shell).
 
 - **System** (`sysmon`, `Modules/SystemMonitor`) — `SystemSampler` (GetSystemTimes, per-core
@@ -213,10 +108,9 @@ with their settings rows and snapshot states. Helpers: `Core/Cli` (run a console
 
 ## Settings panel (`Views/SettingsPanel`)
 `SettingsView` — full-panel overlay opened by `App.OpenSettings(section?)` (tab-bar gear, tray "Settings"). Sections
-General · Modules · Options · Hotkeys · About. Writes `Settings.Current` and saves (`Settings.Changed` handlers apply
-live); everything module-specific goes through `SettingsActions` (hotkey list/rebind/suspend, `ModuleHost.Sync`,
-restart one module for options read at start, open the AI settings / agent hooks / character gallery / weather tab).
-While it is open the island ignores click-through. `SettingsSnapshots` registers `settings-*` snapshot states.
+General (appearance, behaviour, the toggle hotkey) · Options (per-module rows and groups) · About. Writes
+`Settings.Current` and saves (`Settings.Changed` handlers apply live); module restarts, hotkey rebind and the agent hooks
+link go through `SettingsActions`. `SettingsSnapshots` registers `settings-*` snapshot states.
 
 ## Tests (`tests/Isle.Tests`)
-xUnit; `TestSetup` redirects `Paths.Root` to a temp folder and registers Music, Home and Dev (the loader's order). Pure logic only; UI is checked through snapshots (from M1).
+xUnit; `TestSetup` redirects `Paths.Root` to a temp folder. Pure logic only; UI is checked through snapshots (from M1).
