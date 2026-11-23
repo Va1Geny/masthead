@@ -61,6 +61,7 @@ public sealed class UsageView : Grid, ITabView
         var grid = new Grid();
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
         var cards = new UniformGrid { Rows = 1, Margin = new Thickness(0, 0, -6, 0) };
@@ -82,13 +83,13 @@ public sealed class UsageView : Grid, ITabView
         var culture = CultureInfo.GetCultureInfo(Strings.Language == "uk" ? "uk-UA" : "en-GB");
         if (r.Limits is { Count: > 0 } limits)
         {
-            var lim = Ui.Dim(Strings.T("usage.limits", string.Join(" · ", limits.Select(w => Limit(w, culture)))));
+            var lim = Ui.Dim(Strings.T("usage.limits", string.Join(" · ", limits.Select(w => Limit(w, culture)))), wrap: true);
             lim.FontSize = 10.5;
-            lim.Margin = new Thickness(0, 0, 10, 0);
+            lim.Margin = new Thickness(2, 2, 0, 0);
             var top = limits.Max(w => w.UsedPercent);
             if (top >= 80) lim.SetResourceReference(TextBlock.ForegroundProperty, top >= 95 ? "DangerBrush" : "WarnBrush");
-            DockPanel.SetDock(lim, Dock.Left);
-            bar.Children.Add(lim);
+            SetRow(lim, 2);
+            grid.Children.Add(lim);
         }
         var note = Ui.Dim(Strings.T("usage.note"));
         note.FontSize = 10.5;
@@ -102,7 +103,7 @@ public sealed class UsageView : Grid, ITabView
             list.Children.Add(Row(s.Project, string.Join(", ", s.Models.Select(UsageReport.ModelName)),
                 s.Start.ToString("d MMM HH:mm", culture), Duration(s.Duration), UsageReport.Count(s.Tokens.Total), UsageReport.Money(s.Cost, s.Partial)));
         var scroll = new ScrollViewer { Content = list, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Margin = new Thickness(0) };
-        SetRow(scroll, 2);
+        SetRow(scroll, 3);
         grid.Children.Add(scroll);
         return grid;
     }

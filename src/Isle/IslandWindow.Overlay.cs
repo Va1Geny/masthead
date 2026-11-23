@@ -12,6 +12,13 @@ public partial class IslandWindow
 
     public void ShowOverlay(FrameworkElement view)
     {
+        // A tooltip is its own popup window and would outlive its button (the header is replaced): disable, then re-enable.
+        for (var d = Mouse.DirectlyOver as DependencyObject; d is not null; d = d is System.Windows.Media.Visual ? System.Windows.Media.VisualTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d))
+            if (d is FrameworkElement { ToolTip: not null } fe)
+            {
+                System.Windows.Controls.ToolTipService.SetIsEnabled(fe, false);
+                Dispatcher.BeginInvoke(() => System.Windows.Controls.ToolTipService.SetIsEnabled(fe, true), System.Windows.Threading.DispatcherPriority.Background);
+            }
         if (_overlay is not { Visibility: Visibility.Visible }) _beforeOverlayFocus = Keyboard.FocusedElement;
         if (!ReferenceEquals(_overlay, view))
         {

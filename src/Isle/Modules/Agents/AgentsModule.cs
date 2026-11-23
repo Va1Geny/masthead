@@ -39,7 +39,7 @@ public sealed class AgentsModule(IslandWindow island) : IModule, IDisposable
             _view = new AgentsView(Actions());
             Render();
             return _view;
-        }, 100));
+        }, 101));
         var endpoint = HookProtocol.Endpoint.Create();
         _server = new AgentPipeServer(endpoint.PipeName, Handle);
         try

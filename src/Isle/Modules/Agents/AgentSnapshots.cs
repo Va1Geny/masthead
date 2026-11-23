@@ -43,7 +43,7 @@ static class AgentSnapshots
         var view = new AgentsView(new AgentsActions(_ => { }, _ => { }, _ => { }, _ => { }, (_, _) => { }, _ => { }, Targets, _ => "", _ => "", () => 60));
         view.Show(book.Sessions, anyHooks);
         then?.Invoke(view);
-        w.AddTab(new TabInfo(AgentsModule.TabId, "tab.agents", "Icon.Agents", () => view, 100));
+        w.AddTab(new TabInfo(AgentsModule.TabId, "tab.agents", "Icon.Agents", () => view, 101));
         w.Expand(AgentsModule.TabId);
     }
 

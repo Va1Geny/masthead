@@ -70,7 +70,7 @@ static class Ui
         var grid = new Grid();
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        var head = new DockPanel { Margin = new Thickness(0, -2, 0, headGap) };
+        var head = new DockPanel { Margin = new Thickness(0, 0, 0, Math.Max(0, headGap - 2)) };
         foreach (var e in new[] { close, extra })
             if (e is not null) { DockPanel.SetDock(e, Dock.Right); head.Children.Add(e); }
         title.VerticalAlignment = VerticalAlignment.Center;

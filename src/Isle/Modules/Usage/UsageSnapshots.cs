@@ -18,7 +18,7 @@ static class UsageSnapshots
     static void Tab(IslandWindow w, Func<Task<UsageReport>> scan)
     {
         var view = new UsageView(scan);
-        w.AddTab(new TabInfo(UsageModule.TabId, "tab.usage", "Icon.Code", () => view, 98));
+        w.AddTab(new TabInfo(UsageModule.TabId, "tab.usage", "Icon.Code", () => view, 100));
         w.Expand(UsageModule.TabId);
     }
 
