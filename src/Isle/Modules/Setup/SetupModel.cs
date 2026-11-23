@@ -24,12 +24,12 @@ public static class SetupModel
     [
         new("agent", "setup.agent", [new("claude", "setup.claude", "claude", ".claude"), new("codex", "setup.codex", "codex", ".codex"), new("gemini", "setup.gemini", "gemini", @".gemini\settings.json"), NoChoice]),
         new("git", "setup.git", [new("github", "setup.github", "gh"), NoChoice]),
-        new("containers", "setup.containers", [new("docker", "setup.docker", "docker", Path: @"\\.\pipe\docker_engine"), NoChoice]),
+        new("containers", "setup.containers", [new("docker", "setup.docker", "docker", Path: @"\\.\pipe\docker_engine"), new("podman", "setup.podman", "podman", Path: @"\\.\pipe\podman-machine-default"), NoChoice]),
     ];
 
     public static readonly SetupItem[] Items =
     [
-        new("sysmon", "tab.sysmon"), new("ports", "tab.ports"), new("projects", "tab.projects"), new("agents", "tab.agents"), new("usage", "tab.usage"),
+        new("sysmon", "tab.sysmon"), new("ports", "tab.ports"), new("docker", "tab.docker"),new("projects", "tab.projects"), new("agents", "tab.agents"), new("usage", "tab.usage"),
         new("media", "setup.item.media", Alert: true), new("kube", "setup.item.kube", Alert: true), new("logs", "setup.item.logs", Alert: true),
     ];
 
@@ -46,8 +46,8 @@ public static class SetupModel
     /// <summary>Agents and Usage only make sense with an AI agent.</summary>
     public static bool Offered(string id, string agent) => agent != None || id is not ("agents" or "usage");
 
-    public static HashSet<string> Defaults(string agent, bool kubeconfigExists) =>
-        Items.Where(i => !i.Online && Offered(i.Id, agent) && (i.Id != "kube" || kubeconfigExists)).Select(i => i.Id).ToHashSet();
+    public static HashSet<string> Defaults(string agent, bool kubeconfigExists, bool containers = false) =>
+        Items.Where(i => !i.Online && Offered(i.Id, agent) && (i.Id != "kube" || kubeconfigExists) && (i.Id != "docker" || containers)).Select(i => i.Id).ToHashSet();
 
     public static bool CanTick(ISet<string> ticked, string id, int limit = Limit) => ticked.Contains(id) || ticked.Count < limit;
 
@@ -59,7 +59,7 @@ public static class SetupModel
     {
         var answers = Preselect(found);
         if (!s.OptBool("setup.done"))
-            return (answers, Defaults(answers["agent"], kubeconfig));
+            return (answers, Defaults(answers["agent"], kubeconfig, answers["containers"] != None));
         foreach (var q in Questions)
             if (q.Choices.Any(c => c.Value == s.Opt("setup." + q.Option))) answers[q.Option] = s.Opt("setup." + q.Option);
         return (answers, Items.Where(i => Offered(i.Id, answers["agent"]) && s.IsModuleEnabled(i.Id)).Select(i => i.Id).ToHashSet());

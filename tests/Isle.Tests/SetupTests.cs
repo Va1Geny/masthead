@@ -34,6 +34,7 @@ public class SetupTests
     {
         Assert.Equal(new[] { "agents", "logs", "media", "ports", "projects", "sysmon", "usage" }, SetupModel.Defaults("claude", false).Order());
         Assert.Contains("kube", SetupModel.Defaults("codex", true));
+        Assert.Contains("docker", SetupModel.Defaults("codex", false, containers: true));
         var bare = SetupModel.Defaults("none", false);
         Assert.Equal(new[] { "logs", "media", "ports", "projects", "sysmon" }, bare.Order());
     }
