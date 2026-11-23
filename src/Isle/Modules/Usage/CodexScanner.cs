@@ -15,8 +15,6 @@ internal static class CodexScanner
     public static string DefaultSessionsDir() => Path.Combine(Path.GetDirectoryName(HookTarget.Codex().ConfigPath)!, "sessions");
 
     /// <summary>Parses one rollout; null when it has no token data. <paramref name="limits"/> = its newest rate_limits.</summary>
-    public static FileState? ParseFile(string path) => ParseFile(path, out _);
-
     public static FileState? ParseFile(string path, out CodexLimits? limits)
     {
         using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
@@ -36,22 +34,22 @@ internal static class CodexScanner
                 var root = doc.RootElement;
                 if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("payload", out var p) || p.ValueKind != JsonValueKind.Object) continue;
                 var time = root.TryGetProperty("timestamp", out var ts) && ts.ValueKind == JsonValueKind.String && ts.TryGetDateTimeOffset(out var t0) ? t0.ToUnixTimeMilliseconds() : 0;
-                switch (Str(root, "type"))
+                switch (root.Str("type"))
                 {
                     case "session_meta":
                         if (start == 0) start = time;
-                        st.Cwd = Leaf(Str(p, "cwd"));
+                        st.Cwd = JsonExt.Leaf(p.Str("cwd"));
                         break;
                     case "turn_context":
-                        if (Str(p, "model") is { Length: > 0 } m) model = m;
+                        if (p.Str("model") is { Length: > 0 } m) model = m;
                         break;
-                    case "event_msg" when Str(p, "type") == "token_count":
+                    case "event_msg" when p.Str("type") == "token_count":
                         if (Limits(p, time) is { } l) limits = l;
                         if (!p.TryGetProperty("info", out var info) || info.ValueKind != JsonValueKind.Object
                             || !info.TryGetProperty("total_token_usage", out var u) || u.ValueKind != JsonValueKind.Object) break;
-                        var input = Num(u, "input_tokens");
-                        var cached = Math.Min(Num(u, "cached_input_tokens"), input); // a subset of input
-                        var (uncached, output) = (input - cached, Num(u, "output_tokens")); // output already includes reasoning
+                        var input = u.Num("input_tokens");
+                        var cached = Math.Min(u.Num("cached_input_tokens"), input); // a subset of input
+                        var (uncached, output) = (input - cached, u.Num("output_tokens")); // output already includes reasoning
                         if (uncached < pUncached || cached < pCached || output < pOut) (pUncached, pCached, pOut) = (0, 0, 0); // counters restarted
                         var d = new Tokens { In = uncached - pUncached, CacheRead = cached - pCached, Out = output - pOut };
                         (pUncached, pCached, pOut) = (uncached, cached, output);
@@ -79,7 +77,7 @@ internal static class CodexScanner
         foreach (var name in (string[])["primary", "secondary"])
             if (rl.TryGetProperty(name, out var w) && w.ValueKind == JsonValueKind.Object
                 && w.TryGetProperty("used_percent", out var up) && up.ValueKind == JsonValueKind.Number)
-                l.Windows.Add(new RateWindow { UsedPercent = up.GetDouble(), WindowMinutes = (int)Num(w, "window_minutes"), ResetsAt = Num(w, "resets_at") });
+                l.Windows.Add(new RateWindow { UsedPercent = up.GetDouble(), WindowMinutes = (int)w.Num("window_minutes"), ResetsAt = w.Num("resets_at") });
         return l.Windows.Count > 0 ? l : null;
     }
 
@@ -117,16 +115,5 @@ internal static class CodexScanner
             }
         foreach (var gone in data.Files.Keys.Where(k => !present.Contains(k)).ToList()) { data.Files.Remove(gone); changed = true; }
         return changed;
-    }
-
-    static string? Str(JsonElement e, string name) => e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
-
-    static long Num(JsonElement e, string name) => e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt64(out var n) && n > 0 ? n : 0;
-
-    static string Leaf(string? path)
-    {
-        if (string.IsNullOrWhiteSpace(path)) return "";
-        var p = path.TrimEnd('\\', '/');
-        return p[(p.LastIndexOfAny(['\\', '/']) + 1)..];
     }
 }

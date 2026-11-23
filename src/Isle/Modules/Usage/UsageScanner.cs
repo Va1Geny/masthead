@@ -87,40 +87,27 @@ internal static class UsageScanner
         {
             using var doc = JsonDocument.Parse(line, new JsonDocumentOptions { MaxDepth = 256 });
             var root = doc.RootElement;
-            if (root.ValueKind != JsonValueKind.Object || Str(root, "type") != "assistant") return null;
+            if (root.ValueKind != JsonValueKind.Object || root.Str("type") != "assistant") return null;
             if (!root.TryGetProperty("message", out var msg) || msg.ValueKind != JsonValueKind.Object) return null;
             if (!msg.TryGetProperty("usage", out var u) || u.ValueKind != JsonValueKind.Object) return null;
             if (!root.TryGetProperty("timestamp", out var ts) || ts.ValueKind != JsonValueKind.String || !ts.TryGetDateTimeOffset(out var time)) return null;
 
-            var t = new Tokens { In = Num(u, "input_tokens"), Out = Num(u, "output_tokens"), CacheRead = Num(u, "cache_read_input_tokens") };
-            var write = Num(u, "cache_creation_input_tokens");
+            var t = new Tokens { In = u.Num("input_tokens"), Out = u.Num("output_tokens"), CacheRead = u.Num("cache_read_input_tokens") };
+            var write = u.Num("cache_creation_input_tokens");
             if (u.TryGetProperty("cache_creation", out var cc) && cc.ValueKind == JsonValueKind.Object)
             {
-                t.Write5m = Num(cc, "ephemeral_5m_input_tokens");
-                t.Write1h = Num(cc, "ephemeral_1h_input_tokens");
+                t.Write5m = cc.Num("ephemeral_5m_input_tokens");
+                t.Write1h = cc.Num("ephemeral_1h_input_tokens");
             }
             if (write > t.CacheWrite) t.Write5m += write - t.CacheWrite; // no TTL split reported: treat the rest as 5-minute writes
             if (t.Total == 0) return null; // "<synthetic>" error messages and the like
 
-            var id = Str(msg, "id");
-            var request = Str(root, "requestId");
+            var id = msg.Str("id");
+            var request = root.Str("requestId");
             var key = string.IsNullOrEmpty(id) && string.IsNullOrEmpty(request) ? 0 : Hash(id + "|" + request);
-            return new UsageLine(Str(msg, "model") ?? "", time.ToUnixTimeMilliseconds(), Leaf(Str(root, "cwd")), key, t);
+            return new UsageLine(msg.Str("model"), time.ToUnixTimeMilliseconds(), JsonExt.Leaf(root.Str("cwd")), key, t);
         }
         catch (JsonException) { return null; }
-    }
-
-    static string? Str(JsonElement e, string name) =>
-        e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
-
-    static long Num(JsonElement e, string name) =>
-        e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt64(out var n) && n > 0 ? n : 0;
-
-    static string Leaf(string? path)
-    {
-        if (string.IsNullOrWhiteSpace(path)) return "";
-        var p = path.TrimEnd('\\', '/');
-        return p[(p.LastIndexOfAny(['\\', '/']) + 1)..];
     }
 
     /// <summary>FNV-1a, never 0 (0 means "no key").</summary>

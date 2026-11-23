@@ -23,7 +23,7 @@ public static partial class GitHosts
     {
         using var doc = JsonDocument.Parse(json);
         return doc.RootElement.EnumerateArray().Select(p => new ReviewItem(
-            Str(p, "repository", "nameWithOwner"), Str(p, "title"), Str(p, "url"), Str(p, "author", "login"))).ToList();
+            p.Str("repository", "nameWithOwner"), p.Str("title"), p.Str("url"), p.Str("author", "login"))).ToList();
     }
 
     /// <summary>Output of <c>GET /api/v4/merge_requests</c>; the project path comes from <c>references.full</c> ("group/project!12").</summary>
@@ -32,9 +32,9 @@ public static partial class GitHosts
         using var doc = JsonDocument.Parse(json);
         return doc.RootElement.EnumerateArray().Select(m =>
         {
-            var full = Str(m, "references", "full");
+            var full = m.Str("references", "full");
             var bang = full.LastIndexOf('!');
-            return new ReviewItem(bang > 0 ? full[..bang] : "", Str(m, "title"), Str(m, "web_url"), Str(m, "author", "username"));
+            return new ReviewItem(bang > 0 ? full[..bang] : "", m.Str("title"), m.Str("web_url"), m.Str("author", "username"));
         }).ToList();
     }
 
@@ -44,7 +44,7 @@ public static partial class GitHosts
         using var doc = JsonDocument.Parse(json);
         if (doc.RootElement.GetArrayLength() == 0) return null;
         var p = doc.RootElement[0];
-        var state = Str(p, "status") switch
+        var state = p.Str("status") switch
         {
             "success" or "skipped" => CiState.Passed,
             "failed" => CiState.Failed,
@@ -52,14 +52,7 @@ public static partial class GitHosts
             _ => CiState.Running, // created, pending, running, preparing, scheduled, waiting_for_resource
         };
         var updated = p.TryGetProperty("updated_at", out var u) && u.TryGetDateTimeOffset(out var t) ? t : DateTimeOffset.MinValue;
-        return new CiRun(p.GetProperty("id").GetInt64(), "pipeline", state, Str(p, "web_url"), updated);
-    }
-
-    static string Str(JsonElement e, string a, string? b = null)
-    {
-        if (!e.TryGetProperty(a, out var x)) return "";
-        if (b is not null && (x.ValueKind != JsonValueKind.Object || !x.TryGetProperty(b, out x))) return "";
-        return x.ValueKind == JsonValueKind.String ? x.GetString() ?? "" : "";
+        return new CiRun(p.GetProperty("id").GetInt64(), "pipeline", state, p.Str("web_url"), updated);
     }
 
     /// <summary>"group/sub/project" when <paramref name="remote"/> points at <paramref name="host"/> (https, ssh or scp style), otherwise null.</summary>

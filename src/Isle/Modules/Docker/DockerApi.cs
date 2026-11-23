@@ -2,6 +2,7 @@ using System.IO.Pipes;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using Isle.Core;
 
 namespace Isle.Modules.Docker;
 
@@ -40,19 +41,18 @@ public static class DockerParse
         using var doc = JsonDocument.Parse(json);
         foreach (var c in doc.RootElement.EnumerateArray())
         {
-            string S(string n) => c.TryGetProperty(n, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
             JsonElement labels = default;
             if (c.TryGetProperty("Labels", out var l) && l.ValueKind == JsonValueKind.Object) labels = l;
             string? Label(string n) => labels.ValueKind == JsonValueKind.Object && labels.TryGetProperty(n, out var v) && v.GetString() is { Length: > 0 } s ? s : null;
-            var id = S("Id");
+            var id = c.Str("Id");
             var name = c.TryGetProperty("Names", out var ns) && ns.ValueKind == JsonValueKind.Array && ns.GetArrayLength() > 0 ? ns[0].GetString()!.TrimStart('/') : id[..Math.Min(12, id.Length)];
-            var image = S("Image");
+            var image = c.Str("Image");
             var db = Dbs.Where(d => d.Image == Repo(image)).Select(d => ((string Label, int Port)?)(d.Label, d.Port)).FirstOrDefault();
             int? port = null;
             if (c.TryGetProperty("Ports", out var ports) && ports.ValueKind == JsonValueKind.Array)
                 foreach (var p in ports.EnumerateArray())
                     if (p.TryGetProperty("PublicPort", out var pub) && (port is null || (db is not null && p.GetProperty("PrivatePort").GetInt32() == db.Value.Port))) port = pub.GetInt32();
-            list.Add(new Box(id, name, image, S("State"), S("Status"), Label(ProjectLabel), Label("com.docker.compose.project.working_dir"), Label("com.docker.compose.project.config_files"), db?.Label, port));
+            list.Add(new Box(id, name, image, c.Str("State"), c.Str("Status"), Label(ProjectLabel), Label("com.docker.compose.project.working_dir"), Label("com.docker.compose.project.config_files"), db?.Label, port));
         }
         return list;
     }
@@ -124,9 +124,10 @@ public static class DockerParse
 }
 
 /// <summary>Several "die" events of one container inside a short window mean a crash loop.</summary>
-public sealed class CrashTracker(int threshold = 3, TimeSpan? window = null)
+public sealed class CrashTracker
 {
-    readonly TimeSpan _window = window ?? TimeSpan.FromMinutes(2);
+    const int Threshold = 3;
+    static readonly TimeSpan Window = TimeSpan.FromMinutes(2);
     readonly Dictionary<string, List<DateTimeOffset>> _dies = [];
 
     /// <summary>True when this event completes a crash loop (the counter then starts over).</summary>
@@ -134,9 +135,9 @@ public sealed class CrashTracker(int threshold = 3, TimeSpan? window = null)
     {
         if (e.Action != "die") return false;
         if (!_dies.TryGetValue(e.Id, out var list)) _dies[e.Id] = list = [];
-        list.RemoveAll(t => e.Time - t > _window);
+        list.RemoveAll(t => e.Time - t > Window);
         list.Add(e.Time);
-        if (list.Count < threshold) return false;
+        if (list.Count < Threshold) return false;
         list.Clear();
         return true;
     }

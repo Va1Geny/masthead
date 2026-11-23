@@ -29,7 +29,7 @@ public sealed class CodexUsageTests : IDisposable
             "{\"timestamp\":\"2026-11-22T10:00:01Z\",\"type\":\"turn_context\",\"payload\":{\"model\":\"gpt-5-codex\"}}",
             Count("2026-11-22T10:01:00Z", Usage(100, 40, 10)), Count("2026-11-22T10:02:00Z", null), Count("2026-11-22T10:03:00Z", Usage(300, 100, 50)),
             Count("2026-11-22T10:04:00Z", null));
-        var st = CodexScanner.ParseFile(path)!;
+        var st = CodexScanner.ParseFile(path, out _)!;
         var (model, t) = st.Days.Values.Single().Single();
         Assert.Equal("gpt-5-codex", model);
         Assert.Equal((200, 100, 50), (t.In, t.CacheRead, t.Out)); // cached is a subset of input
@@ -65,8 +65,8 @@ public sealed class CodexUsageTests : IDisposable
     [Fact]
     public void No_token_data_or_model_falls_back()
     {
-        Assert.Null(CodexScanner.ParseFile(Rollout("rollout-b.jsonl", Meta, Count("2026-11-22T10:01:00Z", null))));
-        var st = CodexScanner.ParseFile(Rollout("rollout-c.jsonl", Meta, Count("2026-11-22T10:01:00Z", Usage(5, 0, 5))))!;
+        Assert.Null(CodexScanner.ParseFile(Rollout("rollout-b.jsonl", Meta, Count("2026-11-22T10:01:00Z", null)), out _));
+        var st = CodexScanner.ParseFile(Rollout("rollout-c.jsonl", Meta, Count("2026-11-22T10:01:00Z", Usage(5, 0, 5))), out _)!;
         Assert.Equal("codex", st.Days.Values.Single().Keys.Single());
     }
 
