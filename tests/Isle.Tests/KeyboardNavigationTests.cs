@@ -5,10 +5,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using Isle.Core;
 using Isle.Modules.Hotkeys;
-using Isle.Modules.Shelf;
 using Isle.Views.SettingsPanel;
-using Isle.Views.Shelf;
-using Isle.Views.Tools;
 
 namespace Isle.Tests;
 
@@ -17,27 +14,9 @@ namespace Isle.Tests;
 public class KeyboardNavigationTests
 {
     [Fact]
-    public void Picked_colors_expose_named_buttons_that_copy_the_selected_hex()
-    {
-        FakeSink.Run(_ =>
-        {
-            string? copied = null;
-            var view = new ToolsView(() => { }, () => { }, () => { }, () => { }, () => { }, hex => copied = hex, _ => { }, _ => { });
-            view.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("/Isle;component/Styles/Theme.xaml", UriKind.Relative) });
-            view.ShowColors(["#129AE3", "#FF4D4D"]);
-            var swatches = Descendants(view).OfType<Button>().Where(b => b.Content is Border).ToArray();
-            Assert.Equal(2, swatches.Length);
-            Assert.True(swatches[1].Focusable);
-            Assert.Contains("#FF4D4D", AutomationProperties.GetName(swatches[1]));
-            swatches[1].RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Assert.Equal("#FF4D4D", copied);
-        });
-    }
-
-    [Fact]
     public void Theme_changes_keep_keyboard_focus_and_tab_inside_settings()
     {
-        FakeSink.Run(_ =>
+        Sta.Run(_ =>
         {
             var settings = Settings.Current;
             var originalTheme = settings.Theme;
@@ -73,7 +52,7 @@ public class KeyboardNavigationTests
     [Fact]
     public void Settings_sections_use_native_buttons_and_hotkey_capture_allows_tab()
     {
-        FakeSink.Run(_ =>
+        Sta.Run(_ =>
         {
             var view = new SettingsView(new SettingsActions(
                 () => [new HotkeyInfo("toggle", "hotkey.toggle", "F5", "F5", true)],
@@ -89,44 +68,16 @@ public class KeyboardNavigationTests
                 button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 Assert.Equal(section, view.Section);
             }
-            view.ShowSection("hotkeys");
+            view.ShowSection("general");
             var right = (Grid)view.Children[1];
             var page = (StackPanel)((ScrollViewer)right.Children[1]).Content;
-            var box = Descendants(page).OfType<TextBox>().Single();
+            var box = Descendants(page).OfType<TextBox>().Single(t => t.IsReadOnly);
             using var source = new HwndSource(new HwndSourceParameters("IsleKeyboardTest") { Width = 1, Height = 1 });
             source.RootVisual = view;
             var tab = new KeyEventArgs(Keyboard.PrimaryDevice, source, 0, Key.Tab) { RoutedEvent = Keyboard.PreviewKeyDownEvent };
             box.RaiseEvent(tab);
             Assert.False(tab.Handled);
         });
-    }
-
-    [Fact]
-    public void Shelf_tile_button_selects_without_rebuilding_and_exposes_remove_action()
-    {
-        var file = Path.Combine(Path.GetTempPath(), "isle-shelf-keyboard-" + Guid.NewGuid().ToString("N") + ".json");
-        try
-        {
-            FakeSink.Run(_ =>
-            {
-                var store = new ShelfStore(file, exists: _ => false);
-                store.Add([@"C:\missing-keyboard-test.txt"]);
-                var view = new ShelfView(store, null);
-                view.OnShown();
-                var tiles = (WrapPanel)((ScrollViewer)view.Children[1]).Content;
-                var tile = Assert.IsType<Button>(Assert.Single(tiles.Children.Cast<UIElement>()));
-                Assert.True(tile.Focusable);
-                Assert.Contains("missing-keyboard-test.txt", AutomationProperties.GetName(tile));
-                tile.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                Assert.Same(tile, tiles.Children[0]);
-                var actions = ((DockPanel)view.Children[0]).Children.OfType<StackPanel>().Single();
-                Assert.Equal(Visibility.Visible, actions.Visibility);
-                Assert.All(actions.Children.OfType<Button>(), b => Assert.True(b.Focusable));
-                ((Button)actions.Children[2]).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                Assert.Empty(store.Items);
-            });
-        }
-        finally { File.Delete(file); }
     }
 
     static IEnumerable<DependencyObject> Descendants(DependencyObject root)

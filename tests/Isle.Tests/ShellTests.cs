@@ -14,8 +14,8 @@ public class OverflowTabTests
     [Fact]
     public void Unshown_tab_bar_does_not_handle_a_later_dispatchers_language_change()
     {
-        FakeSink.Run(_ => new TabBar());
-        FakeSink.Run(_ =>
+        Sta.Run(_ => new TabBar());
+        Sta.Run(_ =>
         {
             var previous = Strings.Language;
             try { Strings.Language = previous == "en" ? "uk" : "en"; }
@@ -26,7 +26,7 @@ public class OverflowTabTests
     [Fact]
     public void Hidden_selection_updates_the_visible_and_accessible_more_label()
     {
-        FakeSink.Run(_ =>
+        Sta.Run(_ =>
         {
             var bar = new TabBar { AvailableWidth = 140 };
             var tabs = new[] { "music", "timers", "agents", "notes" }

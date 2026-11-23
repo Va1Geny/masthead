@@ -20,7 +20,7 @@ public class SettingsPanelTests
     [InlineData(0, 18)]
     public void Scale_slider_accepts_drags_at_both_edges_of_its_hit_area(double minimum, double height)
     {
-        FakeSink.Run(_ =>
+        Sta.Run(_ =>
         {
             var view = new SettingsView(new SettingsActions(() => [], (_, _) => true, _ => { },
                 _ => ModuleState.Running, () => { }, _ => { }, _ => { }, () => { }));
@@ -70,14 +70,14 @@ public class SettingsPanelTests
     [Fact]
     public void Inputs_have_row_labels_close_relocalizes_and_scale_commits_when_hidden()
     {
-        FakeSink.Run(_ =>
+        Sta.Run(_ =>
         {
             var savedScale = Settings.Current.Scale;
             try
             {
                 var view = new SettingsView(new SettingsActions(() => [], (_, _) => true, _ => { },
                     _ => ModuleState.Running, () => { }, _ => { }, _ => { }, () => { }));
-                foreach (var section in new[] { "general", "modules", "options" })
+                foreach (var section in new[] { "general", "options" })
                 {
                     view.ShowSection(section);
                     var right = (System.Windows.Controls.Grid)view.Children[1];
@@ -98,7 +98,7 @@ public class SettingsPanelTests
                 Assert.Equal(Strings.T("set.close"), System.Windows.Automation.AutomationProperties.GetName(close));
                 view.ShowSection("options");
                 var jumps = Descendants(view).OfType<System.Windows.Controls.ComboBox>().Single();
-                Assert.Equal(18, jumps.Items.Count); // placeholder + agents + 10 Home groups + 6 Dev groups (TestSetup registers every pack)
+                Assert.Equal(8, jumps.Items.Count); // placeholder + agents + 6 Dev groups
                 jumps.SelectedIndex = jumps.Items.Count - 1;
             }
             finally { Strings.Language = "en"; Settings.Current.Scale = savedScale; Settings.Current.Save("Scale"); }
@@ -136,11 +136,9 @@ public class SettingsPanelTests
     }
 
     [Fact]
-    public void Every_listed_module_and_live_source_has_labels_in_both_languages()
+    public void Every_section_has_labels_in_both_languages()
     {
-        var keys = SettingsView.ModuleIds.SelectMany(id => new[] { "mod." + id, "mod." + id + ".hint" })
-            .Concat(Modules.LiveEvents.LiveEventsModule.SourceNames.Select(n => "set.live." + n))
-            .Concat(SettingsView.Sections.Select(s => "set." + s));
+        var keys = SettingsView.Sections.Select(s => "set." + s);
         foreach (var k in keys)
         {
             Assert.True(Strings.English.ContainsKey(k), k);

@@ -1,6 +1,5 @@
 # build.ps1 - builds, tests and publishes Isle into dist\
-#   dist\Isle-Community\  Isle.exe (framework-dependent single file, needs .NET 10 Desktop Runtime) + Music + Home packs
-#   dist\Isle-Dev\        Isle.exe + Music + Dev packs
+#   dist\Isle-Dev\        Isle.exe (framework-dependent single file, needs .NET 10 Desktop Runtime) + Music + Dev packs
 #   ...-selfcontained\    the same with a self-contained Isle.exe (no runtime needed)
 # Usage: .\scripts\build.ps1 [-SkipTests] [-OutputDirectory dist]
 # The small Rust launcher (Isle.Launcher.exe) is built when rustc is on PATH; without it Isle.exe is started directly.
@@ -51,14 +50,14 @@ Step "publish hook helper (self-contained)" {
 
 # Packs: each with its own dependencies (NuGet DLLs, the Windows SDK projection, Whisper natives), loose next to Isle.exe.
 # ponytail: packs are plain IL (no ReadyToRun); publish them with R2R if their start-up time ever shows.
-foreach ($pack in "Music", "Home", "Dev") {
+foreach ($pack in "Music", "Dev") {
     Step "publish $pack pack" {
         dotnet publish "src\Isle.$pack\Isle.$pack.csproj" -c Release -r win-x64 --self-contained false -o (Join-Path $parts $pack) -nologo -v q
     }
     if (-not (Test-Path -LiteralPath (Join-Path $parts "$pack\Isle.$pack.dll"))) { throw "pack output missing: $parts\$pack\Isle.$pack.dll" }
 }
 
-$packages = [ordered]@{ "Isle-Community" = "Music", "Home"; "Isle-Dev" = "Music", "Dev" }
+$packages = [ordered]@{ "Isle-Dev" = "Music", "Dev" }
 $folders = @()
 foreach ($package in $packages.Keys) {
     foreach ($variant in "", "-selfcontained") {
@@ -101,14 +100,10 @@ function Require($dir, $file, [bool]$present) {
 }
 Write-Host "== smoke checks" -ForegroundColor Cyan
 foreach ($dir in $folders) {
-    $dev = (Split-Path $dir -Leaf).StartsWith("Isle-Dev")
     Require $dir "Isle.Music.dll" $true
-    Require $dir "Isle.Home.dll" (-not $dev)
-    Require $dir "Isle.Dev.dll" $dev
-    Require $dir "runtimes\win-x64\*whisper*" (-not $dev)
+    Require $dir "Isle.Dev.dll" $true
     Snapshot $dir "music-pill"
-    if ($dev) { Snapshot $dir "sysmon-alert"; Snapshot $dir "timers-tab" 2 }   # 2 = unknown state: no Home code here
-    else { Snapshot $dir "timers-tab"; Snapshot $dir "sysmon-alert" 2 }
+    Snapshot $dir "sysmon-alert"
 }
 
 Write-Host "Done:" -ForegroundColor Green

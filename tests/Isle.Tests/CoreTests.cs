@@ -118,7 +118,6 @@ public class StringsTests
     [Fact]
     public void Each_pack_has_the_same_keys_in_both_languages()
     {
-        Assert.Equal(Isle.Home.HomeStrings.En.Keys.Order(), Isle.Home.HomeStrings.Uk.Keys.Order());
         Assert.Equal(Isle.Music.MusicStrings.En.Keys.Order(), Isle.Music.MusicStrings.Uk.Keys.Order());
         Assert.Equal(Isle.Dev.DevStrings.En.Keys.Order(), Isle.Dev.DevStrings.Uk.Keys.Order());
     }
@@ -126,11 +125,11 @@ public class StringsTests
     [Fact]
     public void Packs_load_in_order_and_skip_on_mismatch_or_missing_pack()
     {
-        Assert.Equal(["Music", "Home", "Dev"], Packs.Names);
+        Assert.Equal(["Music", "Dev"], Packs.Names);
         var none = new HashSet<string>();
         Assert.Null(Packs.SkipReason("1+a", "1+a", ["System.Runtime"], none));
         Assert.NotNull(Packs.SkipReason("1+a", "1+b", [], none));
-        Assert.Contains("Isle.Music", Packs.SkipReason("1+a", "1+a", ["Isle", "Isle.Music"], new HashSet<string> { "Isle.Home" })!);
+        Assert.Contains("Isle.Music", Packs.SkipReason("1+a", "1+a", ["Isle", "Isle.Music"], new HashSet<string> { "Isle.Dev" })!);
         Assert.Null(Packs.SkipReason("1+a", "1+a", ["Isle.Music"], new HashSet<string> { "Isle.Music" }));
     }
 

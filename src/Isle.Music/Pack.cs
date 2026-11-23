@@ -10,7 +10,6 @@ public static class Pack
     {
         Strings.Add(MusicStrings.En, MusicStrings.Uk);
         App.Host.Register("media", () => new Modules.Media.MediaModule(App.Island!));
-        SettingsView.AddModules("agents", "media");
         Modules.Media.MediaSnapshots.Register(IslandWindow.SnapshotStates);
     }
 }

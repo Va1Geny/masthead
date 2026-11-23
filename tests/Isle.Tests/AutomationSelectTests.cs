@@ -26,7 +26,7 @@ public class AutomationSelectTests
     [Fact]
     public void Selecting_a_tab_through_automation_switches_to_it()
     {
-        FakeSink.Run(_ =>
+        Sta.Run(_ =>
         {
             var bar = new TabBar { AvailableWidth = 600 };
             bar.SetTabs(new[] { "music", "timers", "notes" }.Select((id, order) => new TabInfo(id, "tab." + id, "Icon.More", () => new Grid(), order)), "music");
@@ -45,7 +45,7 @@ public class AutomationSelectTests
     [Fact]
     public void Selecting_a_settings_choice_through_automation_applies_it()
     {
-        FakeSink.Run(_ =>
+        Sta.Run(_ =>
         {
             var settings = Settings.Current;
             var original = settings.Theme;

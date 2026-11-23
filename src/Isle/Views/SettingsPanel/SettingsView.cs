@@ -23,39 +23,15 @@ public sealed record SettingsActions(
 
 /// <summary>
 /// Settings: a full-panel overlay with a section list on the left and a scrolling page on the right.
-/// Sections: general (appearance + behaviour), options (per-module), about; the Home pack adds modules (on/off) and hotkeys (rebind).
+/// Sections: general (appearance + behaviour + the toggle hotkey), options (per-module), about.
 /// Simple changes are written and saved here; module restarts and links go through <see cref="SettingsActions"/>.
 /// </summary>
 public sealed class SettingsView : Grid, ITabView
 {
-    /// <summary>Section ids in the order shown; packs add theirs with <see cref="AddSection"/>.</summary>
-    internal static readonly List<string> Sections = ["general", "options", "about"];
-
-    static readonly Dictionary<string, Action<SettingsView>> PackPages = [];
-
-    /// <summary>Extra rows packs add to the General page: at the end of Appearance, and after "hide in fullscreen" in Behaviour.</summary>
-    internal static readonly List<Action<SettingsView>> PackAppearance = [], PackBehaviour = [];
-
-    /// <summary>Adds a section before <paramref name="before"/>; <paramref name="page"/> fills its page.</summary>
-    internal static void AddSection(string id, string before, Action<SettingsView> page)
-    {
-        Sections.Insert(Sections.IndexOf(before), id);
-        PackPages[id] = page;
-    }
-
-    /// <summary>Module ids in the order shown (tray last: it is the way back when the island is hidden). Packs add theirs with <see cref="AddModules"/>.</summary>
-    internal static readonly List<string> ModuleIds = ["agents", "tray"];
+    public static readonly string[] Sections = ["general", "options", "about"];
 
     /// <summary>Option groups and rows the packs add (view, add-a-group), shown before the shell's own.</summary>
     internal static readonly List<Action<SettingsView, Action<string>>> PackOptions = [];
-
-    /// <summary>Inserts module ids before <paramref name="before"/>, or before "tray" when that id is absent (another pack missing).</summary>
-    internal static void AddModules(string before, params string[] ids)
-    {
-        var i = ModuleIds.IndexOf(before);
-        if (i < 0) i = Math.Max(0, ModuleIds.IndexOf("tray"));
-        ModuleIds.InsertRange(i, ids);
-    }
 
     static Core.Settings S => Core.Settings.Current;
 
@@ -68,7 +44,6 @@ public sealed class SettingsView : Grid, ITabView
     readonly Button _close;
     readonly DispatcherTimer _scaleTimer = new() { Interval = TimeSpan.FromMilliseconds(160) };
     string _section = "general";
-    string? _hotkeyNote;
     double _pendingScale;
 
     public SettingsView(SettingsActions actions)
@@ -109,13 +84,10 @@ public sealed class SettingsView : Grid, ITabView
 
     public string Section => _section;
     internal SettingsActions Actions => _a;
-    internal string? HotkeyNote => _hotkeyNote;
-    internal StackPanel Page => _page;
 
     public void ShowSection(string section)
     {
         _section = Sections.Contains(section) ? section : "general";
-        _hotkeyNote = null;
         Render();
         _scroll.ScrollToTop();
     }
@@ -154,7 +126,6 @@ public sealed class SettingsView : Grid, ITabView
             case "general": General(); break;
             case "options": OptionsPage(); break;
             case "about": About(); break;
-            default: PackPages[_section](this); break;
         }
         _scroll.UpdateLayout();
         _scroll.ScrollToVerticalOffset(offset);
@@ -181,11 +152,9 @@ public sealed class SettingsView : Grid, ITabView
                 v => v == "-1" ? "set.monitor.primary" : null, v => (int.Parse(v, CultureInfo.InvariantCulture) + 1).ToString(CultureInfo.InvariantCulture)));
         }
         Row("set.shape", Choice(["notch", "pill"], S.Opt("shape", "notch") == "pill" ? "pill" : "notch", v => { S.SetOpt("shape", v); Save("Options"); }, v => "set.shape." + v));
-        foreach (var add in PackAppearance) add(this);
 
         Group("set.behaviour");
         Row("set.fullscreen", Switch(S.HideInFullscreen, on => { S.HideInFullscreen = on; Save("HideInFullscreen"); }), "set.fullscreen.hint");
-        foreach (var add in PackBehaviour) add(this);
         Row("set.autostart", Switch(SafeAutostart(), on => { try { Autostart.Set(on); } catch (Exception ex) { Logger.Error("autostart", ex); } Render(); }));
         Row("set.excluded", TextField(string.Join(", ", S.ExcludedApps), v =>
         {
@@ -207,8 +176,7 @@ public sealed class SettingsView : Grid, ITabView
         }));
         _page.Children.Add(openApps);
         Row("set.excluded.overlap", Switch(S.ExcludedAppsOnlyOnOverlap, on => { S.ExcludedAppsOnlyOnOverlap = on; Save("ExcludedAppsOnlyOnOverlap"); }));
-        // without a Hotkeys page (no Home pack) the toggle hotkey is the only one, so it lives here
-        if (!Sections.Contains("hotkeys")) foreach (var h in Hotkeys().Where(h => h.Id == "toggle")) HotkeyRow(h);
+        foreach (var h in Hotkeys().Where(h => h.Id == "toggle")) HotkeyRow(h);
     }
 
     void OptionsPage()
@@ -241,13 +209,13 @@ public sealed class SettingsView : Grid, ITabView
         Row("set.hooks", Link("", "set.manage", () => _a.Open("hooks")), "set.hooks.hint");
     }
 
-    internal IReadOnlyList<HotkeyInfo> Hotkeys()
+    IReadOnlyList<HotkeyInfo> Hotkeys()
     {
         try { return _a.Hotkeys(); }
         catch (Exception ex) { Logger.Error("hotkey list", ex); return []; }
     }
 
-    internal void HotkeyRow(HotkeyInfo h)
+    void HotkeyRow(HotkeyInfo h)
     {
         var cell = new StackPanel { Orientation = Orientation.Horizontal };
         if (!string.Equals(h.Gesture, h.DefaultGesture, StringComparison.OrdinalIgnoreCase))
@@ -277,10 +245,8 @@ public sealed class SettingsView : Grid, ITabView
 
     void Rebind(string id, string? gesture)
     {
-        bool ok;
-        try { ok = _a.Rebind(id, gesture); }
-        catch (Exception ex) { Logger.Error("rebind", ex); ok = false; }
-        _hotkeyNote = ok || gesture == "" ? null : Strings.T("set.hkInUse", gesture ?? "");
+        try { _a.Rebind(id, gesture); }
+        catch (Exception ex) { Logger.Error("rebind", ex); }
         Render();
     }
 

@@ -15,34 +15,8 @@ public partial class IslandWindow
     {
         ["idle"] = _ => { },
         ["expanded-empty"] = w => w.Expand(),
-        ["expanded"] = w => { w.AddDemoTabs(); w.Expand("timers"); },
-        ["expanded-toast"] = w => { w.AddDemoTabs(); w.Expand("music"); w.ShowToast(Strings.T("snap.toast"), Strings.T("common.undo")); },
-        ["more"] = w => { w.AddDemoTabs(extra: 3); w.Expand("music"); w.ShowMoreOverlay(w.Tabs.Hidden); },
         ["edge-hidden"] = w => { w._edgeHidden = true; w.SetTargets(immediate: true); },
     };
-
-    static readonly (string Id, string Icon)[] DemoTabs =
-    [
-        ("music", "Icon.Music"), ("timers", "Icon.Timer"), ("notes", "Icon.Notes"), ("clipboard", "Icon.Clipboard"),
-        ("shelf", "Icon.Shelf"), ("control", "Icon.Control"), ("tools", "Icon.Tools"), ("weather", "Icon.Weather"),
-        ("ai", "Icon.Ai"), ("agents", "Icon.Agents"),
-    ];
-
-    void AddDemoTabs(int extra = 0)
-    {
-        var order = 10;
-        foreach (var (id, icon) in DemoTabs)
-            AddTab(new TabInfo(id, "tab." + id, icon, () => DemoView(id), order += 10));
-        for (var i = 0; i < extra; i++)
-            AddTab(new TabInfo("extra" + i, "tab.tools", "Icon.Tools", () => DemoView("tools"), order += 10));
-    }
-
-    static FrameworkElement DemoView(string id)
-    {
-        var t = new TextBlock { Text = Strings.T("tab." + id), FontSize = 20, HorizontalAlignment = HorizontalAlignment.Center };
-        t.SetResourceReference(StyleProperty, "TextTitle");
-        return new Grid { Children = { t } };
-    }
 
     /// <summary>Entry point for --snapshot. Returns the process exit code.</summary>
     public static int RunSnapshot(string[] args)
@@ -92,8 +66,6 @@ public partial class IslandWindow
         s.Theme = theme;
         s.Language = lang;
         s.Scale = scale;
-        s.ShowClock = false;
-        s.Options.Remove("lyrics.inPill");
         Strings.Language = lang;
         Theme.Apply(theme);
         Theme.SetAccent(null);

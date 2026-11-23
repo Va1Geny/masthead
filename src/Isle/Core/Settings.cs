@@ -21,7 +21,6 @@ public sealed class Settings
     public bool AutoHideEdge { get; set; }
     public bool ClickThrough { get; set; }
     public bool HideInFullscreen { get; set; } = true;
-    public bool ShowClock { get; set; }
     public List<string> ExcludedApps { get; set; } = [];
     public bool ExcludedAppsOnlyOnOverlap { get; set; }
     public string LastTab { get; set; } = "";

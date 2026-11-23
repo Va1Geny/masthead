@@ -16,7 +16,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Isle.Tests" />
-    <InternalsVisibleTo Include="Isle.Home" />
     <Using Include="System.IO" />
   </ItemGroup>
 

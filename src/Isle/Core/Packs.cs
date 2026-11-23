@@ -3,14 +3,14 @@ using System.Reflection;
 namespace Isle.Core;
 
 /// <summary>
-/// Loads the optional packs in a fixed order: exactly <c>Isle.Music.dll</c>, <c>Isle.Home.dll</c>, <c>Isle.Dev.dll</c>
+/// Loads the optional packs in a fixed order: exactly <c>Isle.Music.dll</c>, <c>Isle.Dev.dll</c>
 /// next to Isle.exe, each only when built from the same commit, then calls <c>Isle.&lt;Name&gt;.Pack.Register()</c>.
-/// A pack that references another pack (Home → Music) loads only after that one registered. A failing pack (missing
+/// A failing pack (missing
 /// dependency, mismatch, exception) is logged and skipped; Isle runs with the rest.
 /// </summary>
 static class Packs
 {
-    internal static readonly string[] Names = ["Music", "Home", "Dev"];
+    internal static readonly string[] Names = ["Music", "Dev"];
     static bool _loaded;
 
     /// <summary>Loads once; later calls do nothing (a debug flag may load the packs before start-up does).</summary>

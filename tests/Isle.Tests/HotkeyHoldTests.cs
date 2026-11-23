@@ -10,7 +10,7 @@ public class HotkeyHoldTests
     [Fact]
     public void Shortcut_recorder_finishes_active_hold_once_and_ignores_queued_presses()
     {
-        FakeSink.Run(sink =>
+        Sta.Run(sink =>
         {
             var hotkeys = new HotkeyService();
             int presses = 0, releases = 0, shortcuts = 0;
@@ -44,7 +44,7 @@ public class HotkeyHoldTests
     [InlineData(true)]
     public void Teardown_discards_the_pending_release(bool detach)
     {
-        FakeSink.Run(_ =>
+        Sta.Run(_ =>
         {
             var hotkeys = new HotkeyService();
             int releases = 0;

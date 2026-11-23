@@ -22,7 +22,6 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Isle.Tests" />
     <InternalsVisibleTo Include="Isle.Music" />
-    <InternalsVisibleTo Include="Isle.Home" />
     <InternalsVisibleTo Include="Isle.Dev" />
     <Using Include="System.IO" />
   </ItemGroup>

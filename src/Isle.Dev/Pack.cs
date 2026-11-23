@@ -19,7 +19,6 @@ public static class Pack
         App.Host.Register("logs", () => new Modules.Logs.LogWatchModule(App.Island!));
         App.Host.Register("kube", () => new Modules.Kube.KubeModule(App.Island!));
         App.Host.Register("usage", () => new Modules.Usage.UsageModule(App.Island!));
-        SettingsView.AddModules("tray", "sysmon", "ports", "projects", "logs", "kube", "usage");
         SettingsView.PackOptions.Add(Options);
         if (App.Island is { } island) Modules.Setup.SetupFlow.ShowOnFirstExpand(island);
 
