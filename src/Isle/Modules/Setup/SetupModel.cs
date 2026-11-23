@@ -23,8 +23,8 @@ public static class SetupModel
     public static readonly SetupQuestion[] Questions =
     [
         new("agent", "setup.agent", [new("claude", "setup.claude", "claude", ".claude"), new("codex", "setup.codex", "codex", ".codex"), new("gemini", "setup.gemini", "gemini", @".gemini\settings.json"), NoChoice]),
-        new("git", "setup.git", [new("github", "setup.github", "gh"), NoChoice]),
-        new("containers", "setup.containers", [new("docker", "setup.docker", "docker", Path: @"\\.\pipe\docker_engine"), new("podman", "setup.podman", "podman", Path: @"\\.\pipe\podman-machine-default"), NoChoice]),
+        new("git", "setup.git", [new("github", "setup.github", "gh"), new("gitlab", "setup.gitlab", "glab"), NoChoice]),
+        new("containers", "setup.containers", [new("docker", "setup.docker", "docker", Path: @"\.\pipe\docker_engine"), new("podman", "setup.podman", "podman", Path: @"\.\pipe\podman-machine-default"), NoChoice]),
     ];
 
     public static readonly SetupItem[] Items =

@@ -13,7 +13,7 @@ public enum CiState { None, Running, Passed, Failed, Cancelled }
 public sealed record CiRun(long Id, string Name, CiState State, string Url, DateTimeOffset Updated);
 
 /// <summary>One watched repository as the Projects tab shows it.</summary>
-public sealed record Repo(string Path, string Name, RepoStatus? Status, string? GitHub, CiRun? Ci);
+public sealed record Repo(string Path, string Name, RepoStatus? Status, string? GitHub, CiRun? Ci, string? GitLab = null);
 
 /// <summary>Parsers for git and the GitHub REST API (pure; unit tested).</summary>
 public static partial class RepoParse
@@ -70,13 +70,6 @@ public static partial class RepoParse
         };
         var updated = r.TryGetProperty("updated_at", out var u) && u.TryGetDateTimeOffset(out var when) ? when : DateTimeOffset.MinValue;
         return new CiRun(r.GetProperty("id").GetInt64(), r.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "", state, r.GetProperty("html_url").GetString() ?? "", updated);
-    }
-
-    /// <summary>total_count from <c>GET /search/issues</c>.</summary>
-    public static int SearchCount(string json)
-    {
-        using var doc = JsonDocument.Parse(json);
-        return doc.RootElement.TryGetProperty("total_count", out var t) ? t.GetInt32() : 0;
     }
 
     /// <summary>
