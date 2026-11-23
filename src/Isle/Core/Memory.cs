@@ -6,7 +6,7 @@ using System.Windows.Threading;
 namespace Isle.Core;
 
 /// <summary>
-/// Returns memory to the OS after start-up and after heavy features (OCR, recording, Whisper, AI) finish.
+/// Returns memory to the OS once start-up has finished (see App startup).
 /// Call <see cref="TrimSoon"/>; repeated calls within the delay collapse into one trim.
 /// </summary>
 public static partial class Memory
