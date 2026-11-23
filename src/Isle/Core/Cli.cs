@@ -4,15 +4,15 @@ using System.Text;
 
 namespace Isle.Core;
 
-/// <summary>Runs a console tool with no window and captures stdout; a timeout or missing tool gives exit code -1.</summary>
+/// <summary>Runs a console tool with no window and captures stdout (UTF-8 unless <c>enc</c>; wsl.exe writes UTF-16); a timeout or missing tool gives exit code -1.</summary>
 public static class Cli
 {
-    public static async Task<(int Code, string Output)> RunAsync(string exe, IEnumerable<string> args, string? workingDirectory, TimeSpan timeout, CancellationToken ct = default, IReadOnlyDictionary<string, string>? env = null)
+    public static async Task<(int Code, string Output)> RunAsync(string exe, IEnumerable<string> args, string? workingDirectory, TimeSpan timeout, CancellationToken ct = default, IReadOnlyDictionary<string, string>? env = null, Encoding? enc = null)
     {
         var info = new ProcessStartInfo(exe)
         {
             UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true,
-            StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8,
+            StandardOutputEncoding = enc ?? Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8,
             WorkingDirectory = workingDirectory ?? "",
         };
         foreach (var a in args) info.ArgumentList.Add(a);

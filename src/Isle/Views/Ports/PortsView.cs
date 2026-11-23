@@ -80,12 +80,12 @@ public sealed class PortsView : Grid, ITabView
     FrameworkElement BoxRow(ContainerRow b)
     {
         var row = new DockPanel { Margin = new Thickness(4, 0, 0, 2) };
-        var kind = new TextBlock { Text = b.Kind == ContainerKind.Docker ? "docker" : "wsl", Width = 62, VerticalAlignment = VerticalAlignment.Center };
+        var kind = new TextBlock { Text = "wsl", Width = 62, VerticalAlignment = VerticalAlignment.Center };
         kind.SetResourceReference(TextBlock.FontFamilyProperty, "MonoFont");
         kind.SetResourceReference(TextBlock.ForegroundProperty, "FgDimBrush");
         DockPanel.SetDock(kind, Dock.Left);
         row.Children.Add(kind);
-        var key = b.Kind + b.Id;
+        var key = b.Id;
         Button stop = _confirmBox == key
             ? Ui.TextButton(Strings.T("ports.stopConfirm"), "AccentButton", new Thickness(8, 1, 8, 1), () => Stop(b), "containers stop")
             : Ui.IconButton(Ui.MakeIcon("Icon.Stop", 11), 26, () => { _confirmBox = key; Show(_shown); }, "containers stop");

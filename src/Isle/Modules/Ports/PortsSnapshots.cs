@@ -20,9 +20,8 @@ static class PortsSnapshots
         states["ports-tab"] = w => Tab(w, Demo);
         states["ports-empty"] = w => Tab(w, []);
         states["ports-containers"] = w => Tab(w, Demo[..2], [
-            new ContainerRow(ContainerKind.Docker, "a1", "db", "postgres:17 · :5432"),
-            new ContainerRow(ContainerKind.Docker, "b2", "cache", "redis:7 · :6379"),
-            new ContainerRow(ContainerKind.Wsl, "Ubuntu", "Ubuntu", "WSL 2"),
+            new ContainerRow("Ubuntu", "Ubuntu", "WSL 2"),
+            new ContainerRow("Debian", "Debian", "WSL 1"),
         ]);
         states["ports-pill"] = w => w.Pill.Set(new PillItem
         {
