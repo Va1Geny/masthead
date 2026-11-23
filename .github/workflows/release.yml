@@ -1,0 +1,37 @@
+# Pushing a tag like v1.1.0 builds, tests and publishes a GitHub release with both packages.
+# The tag must match <Version> in Directory.Build.props.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Check the tag matches the version
+        shell: pwsh
+        run: |
+          $v = ([xml](Get-Content Directory.Build.props)).Project.PropertyGroup.Version
+          if ("v$v" -ne $env:GITHUB_REF_NAME) { throw "tag $env:GITHUB_REF_NAME does not match <Version>$v</Version>" }
+      - name: Build, test and publish
+        shell: pwsh
+        run: ./scripts/build.ps1
+      - name: Zip the packages
+        shell: pwsh
+        run: |
+          Compress-Archive dist/Isle/* "Isle-$env:GITHUB_REF_NAME-win-x64.zip"
+          Compress-Archive dist/Isle-selfcontained/* "Isle-$env:GITHUB_REF_NAME-win-x64-selfcontained.zip"
+      - name: Publish the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create $env:GITHUB_REF_NAME (Get-ChildItem Isle-*.zip) --title "Isle $env:GITHUB_REF_NAME" --generate-notes
