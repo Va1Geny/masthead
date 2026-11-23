@@ -15,7 +15,6 @@ public partial class IslandWindow
     {
         ["idle"] = _ => { },
         ["expanded-empty"] = w => w.Expand(),
-        ["edge-hidden"] = w => { w._edgeHidden = true; w.SetTargets(immediate: true); },
     };
 
     /// <summary>Entry point for --snapshot. Returns the process exit code.</summary>

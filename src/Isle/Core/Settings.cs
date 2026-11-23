@@ -18,8 +18,6 @@ public sealed class Settings
     public int Monitor { get; set; } = -1;             // -1 = primary, else index
 
     // Behaviour
-    public bool AutoHideEdge { get; set; }
-    public bool ClickThrough { get; set; }
     public bool HideInFullscreen { get; set; } = true;
     public List<string> ExcludedApps { get; set; } = [];
     public bool ExcludedAppsOnlyOnOverlap { get; set; }

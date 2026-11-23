@@ -7,7 +7,6 @@ internal static partial class Native
 {
     // ---- window styles / positioning ----
     public const int GWL_EXSTYLE = -20;
-    public const int WS_EX_TRANSPARENT = 0x20;
     public const int WS_EX_TOOLWINDOW = 0x80;
     public const int WS_EX_NOACTIVATE = 0x08000000;
     public const int WS_POPUP = unchecked((int)0x80000000);

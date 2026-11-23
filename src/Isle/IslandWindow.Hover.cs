@@ -8,11 +8,11 @@ using Isle.Core;
 
 namespace Isle;
 
-// Pointer logic (hover-intent, leave delay, edge auto-hide), keyboard focus hand-over, and the rules that hide
+// Pointer logic (hover-intent, leave delay), keyboard focus hand-over, and the rules that hide
 // the island (fullscreen app, excluded app, user).
 public partial class IslandWindow
 {
-    const int HoverIntentMs = 120, HoverRearmMs = 150, LeaveDelayMs = 250, EdgeHideDelayMs = 1500;
+    const int HoverIntentMs = 120, HoverRearmMs = 150, LeaveDelayMs = 250;
 
     DispatcherTimer? _hoverTimer;
     long _insideSince, _outsideSince;
@@ -60,14 +60,13 @@ public partial class IslandWindow
             if (click is not null) Safe(click, "pill click");
             else Expand();
         };
-        Loaded += (_, _) => { CheckForeground(); UpdateEdgeHide(); };
+        Loaded += (_, _) => CheckForeground();
         Panel.IsVisibleChanged += (_, _) => FocusExpandedPanel();
         KeyboardNavigation.SetTabNavigation(Panel, KeyboardNavigationMode.Cycle);
     }
 
     void EngagePointer()
     {
-        if (_edgeHidden) SetEdgeHidden(false);
         if (_hoverTimer is { IsEnabled: false })
         {
             _insideSince = _outsideSince = 0;
@@ -120,11 +119,6 @@ public partial class IslandWindow
             if (now - _outsideSince < HoverRearmMs) return;
             _awaitLeave = false;
         }
-        if (Settings.Current.AutoHideEdge && !_edgeHidden)
-        {
-            if (now - _outsideSince >= EdgeHideDelayMs && Pill.Primary?.Peek != true) SetEdgeHidden(true);
-            else return; // keep ticking until it is time to hide
-        }
         _hoverTimer!.Stop();
     }
 
@@ -136,7 +130,7 @@ public partial class IslandWindow
         {
             var p = PointFromScreen(new Point(pt.X, pt.Y));
             var s = UiScale.ScaleX;
-            return new Point(p.X / s, p.Y / s - StageShift.Y);
+            return new Point(p.X / s, p.Y / s);
         }
         catch { return null; }
     }
@@ -164,7 +158,6 @@ public partial class IslandWindow
 
         _expanded = true;
         _sticky = sticky;
-        if (_edgeHidden) _edgeHidden = false;
         NotifyCurrentView(shown: true);
         SetTargets();
         if (!_snapshotMode && _hoverTimer is { IsEnabled: false })
@@ -290,28 +283,6 @@ public partial class IslandWindow
     /// <summary>The window to paste into: whoever was in front before the island (or right now).</summary>
     public IntPtr PasteTarget => _hasFocus && _previousForeground != IntPtr.Zero ? _previousForeground : Watcher.LastExternal;
 
-    // ---- edge auto-hide ----
-
-    void SetEdgeHidden(bool hidden)
-    {
-        if (_edgeHidden == hidden) return;
-        _edgeHidden = hidden;
-        SetTargets();
-    }
-
-    /// <summary>Re-evaluates auto-hide after a settings or pill change.</summary>
-    void UpdateEdgeHide()
-    {
-        if (_snapshotMode) return;
-        if (!Settings.Current.AutoHideEdge || Pill.Primary?.Peek == true)
-        {
-            SetEdgeHidden(false);
-            if (Settings.Current.AutoHideEdge) EngagePointer(); // re-hide after the peek ends
-            return;
-        }
-        if (!_expanded && !_edgeHidden) EngagePointer(); // the timer hides it after the delay
-    }
-
     // ---- hide rules ----
 
     /// <summary>Hides/shows the whole island for a named reason ("user", "fullscreen", "excluded"). Shown only when no reason is left.</summary>
@@ -332,7 +303,6 @@ public partial class IslandWindow
         {
             Show();
             Reposition();
-            UpdateEdgeHide();
         }
     }
 

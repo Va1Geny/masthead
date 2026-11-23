@@ -95,14 +95,13 @@ public partial class IslandWindow : Window
             UpdateIdlePill();
             UpdateHousekeeping();
             CheckForeground();
-            UpdateEdgeHide();
         }
         catch (Exception ex) { Logger.Error("apply settings", ex); }
     }
 
     void OnThemeChanged() => ApplyShape();
 
-    /// <summary>Tool window (no taskbar/Alt+Tab), never activated by clicks; optionally fully click-through.</summary>
+    /// <summary>Tool window (no taskbar/Alt+Tab), never activated by clicks.</summary>
     public void ApplyExStyle()
     {
         if (_hwnd == IntPtr.Zero) return;
@@ -111,9 +110,6 @@ public partial class IslandWindow : Window
         // no-activate always, except while a text box inside the island owns the keyboard
         if (_hasFocus) ex &= ~(long)Native.WS_EX_NOACTIVATE;
         else ex |= Native.WS_EX_NOACTIVATE;
-        // click-through, except while the settings panel is open (otherwise it could never be switched off there)
-        if (Settings.Current.ClickThrough && !(_expanded && _overlay is Views.SettingsPanel.SettingsView { Visibility: Visibility.Visible })) ex |= Native.WS_EX_TRANSPARENT;
-        else ex &= ~(long)Native.WS_EX_TRANSPARENT;
         Native.SetWindowLongPtr(_hwnd, Native.GWL_EXSTYLE, new IntPtr(ex));
     }
 

@@ -2,94 +2,14 @@ using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Documents;
-using System.Windows.Threading;
 using Isle.Core;
 using Isle.Modules.Media;
 using MediaState = Isle.Modules.Media.MediaState;
 
 namespace Isle.Views.Music;
 
-/// <summary>The lyric line at <paramref name="now"/> for the pill ("" between lines), or null when the track has no synced lyrics.</summary>
-public delegate string? LyricLine(MediaState track, DateTimeOffset now);
-
-/// <summary>Collapsed-pill music view: art on the left, equalizer on the right, optional current lyric line between.</summary>
-public sealed class MusicPill : Grid, IDisposable
-{
-    public const double PlainWidth = 200, LyricWidth = 340;
-
-    readonly IMediaSource _media;
-    readonly Func<LyricLine?> _lyric;
-    readonly ArtImage _art = new(22, 6) { HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(7, 0, 0, 0) };
-    readonly Equalizer _eq = new() { HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 0, 13, 0) };
-    readonly TextBlock _line = new()
-    {
-        FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis, HorizontalAlignment = HorizontalAlignment.Center,
-        VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(38, 0, 40, 0),
-    };
-    readonly List<Equalizer> _compacts = [];
-    DispatcherTimer? _lyricTimer;
-    readonly Func<DateTimeOffset> _now;
-
-    /// <param name="lyric">Current lyric provider (Home pack), null = no lyric line.</param>
-    public MusicPill(IMediaSource media, Func<LyricLine?> lyric, Func<DateTimeOffset>? now = null)
-    {
-        _media = media;
-        _lyric = lyric;
-        _now = now ?? (() => DateTimeOffset.Now);
-        Children.Add(_art);
-        Children.Add(_line);
-        Children.Add(_eq);
-        IsVisibleChanged += (_, _) => UpdateLyricTimer();
-    }
-
-    /// <summary>Pill width: wider when a lyric line is shown.</summary>
-    public double PillWidth => _lyric() is null ? PlainWidth : LyricWidth;
-
-    public void Update(MediaState s)
-    {
-        _art.Set(s);
-        _eq.Playing = s.IsPlaying;
-        foreach (var c in _compacts) c.Playing = s.IsPlaying;
-        UpdateLyric();
-    }
-
-    /// <summary>Small equalizer for the pill's side slot when something more important owns the pill.</summary>
-    public FrameworkElement CreateCompact()
-    {
-        var eq = new Equalizer(12, 2.5) { HorizontalAlignment = HorizontalAlignment.Center, Playing = _media.Current?.IsPlaying == true };
-        _compacts.Add(eq);
-        if (_compacts.Count > 4) _compacts.RemoveAt(0);
-        return eq;
-    }
-
-    public void UpdateLyric()
-    {
-        var show = _media.Current is { } cur && _lyric()?.Invoke(cur, _now()) is not null;
-        _line.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-        Tick();
-        UpdateLyricTimer();
-    }
-
-    // the line only changes every few seconds; 250 ms resolution only while visible, playing and enabled
-    void UpdateLyricTimer()
-    {
-        var needed = IsVisible && _line.Visibility == Visibility.Visible && _media.Current?.IsPlaying == true;
-        if (!needed) { _lyricTimer?.Stop(); return; }
-        _lyricTimer ??= new DispatcherTimer(TimeSpan.FromMilliseconds(250), DispatcherPriority.Background, (_, _) => Tick(), Dispatcher);
-        _lyricTimer.Start();
-    }
-
-    void Tick()
-    {
-        if (_line.Visibility != Visibility.Visible || _media.Current is not { } cur || _lyric()?.Invoke(cur, _now()) is not { } line) return;
-        if (_line.Text != line) _line.Text = line;
-    }
-
-    public void Dispose() => _lyricTimer?.Stop();
-}
-
 /// <summary>
-/// Music pill without the Home pack (no Music tab): art, "title — artist" and a play/pause button. Hovering the button
+/// The mini player: art, "title — artist" and a play/pause button. Hovering the button
 /// does not open the island (see IslandWindow.IsOverButton); the rest of the pill opens it as usual.
 /// </summary>
 public sealed class MiniPlayerPill : Grid

@@ -102,7 +102,7 @@ Write-Host "== smoke checks" -ForegroundColor Cyan
 foreach ($dir in $folders) {
     Require $dir "Isle.Music.dll" $true
     Require $dir "Isle.Dev.dll" $true
-    Snapshot $dir "music-pill"
+    Snapshot $dir "music-mini"
     Snapshot $dir "sysmon-alert"
 }
 

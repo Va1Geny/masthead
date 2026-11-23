@@ -10,9 +10,9 @@ public partial class IslandWindow
     // expand: ζ≈0.78 (≈2% overshoot, settles in ~400 ms); collapse: ζ≈0.9, stiffer (~260 ms)
     const double ExpandK = 170, ExpandC = 20.5, CollapseK = 290, CollapseC = 30.6;
 
-    Spring _w = new(120), _h = new(32), _e = new(0), _shift = new(0);
+    Spring _w = new(120), _h = new(32), _e = new(0);
     double _pillW = 120, _pillH = 32;
-    bool _expanded, _edgeHidden, _animating;
+    bool _expanded, _animating;
     TimeSpan _lastFrame;
 
     readonly RectangleGeometry _shape = new();
@@ -59,10 +59,9 @@ public partial class IslandWindow
         _w.Target = _expanded ? ExpandedWidth : _pillW;
         _h.Target = _expanded ? ExpandedHeight : _pillH;
         _e.Target = _expanded ? 1 : 0;
-        _shift.Target = _edgeHidden && !_expanded ? -(TopGap + _pillH - 3) : 0;
         if (immediate || _snapshotMode || !SystemParameters.ClientAreaAnimation)
         {
-            _w.Snap(); _h.Snap(); _e.Snap(); _shift.Snap();
+            _w.Snap(); _h.Snap(); _e.Snap();
             StopAnimation();
             ApplyShape();
             return;
@@ -93,7 +92,6 @@ public partial class IslandWindow
         var moving = _w.Step(dt, k, c);
         moving |= _h.Step(dt, k, c);
         moving |= _e.Step(dt, k, c);
-        moving |= _shift.Step(dt, CollapseK, CollapseC);
         ApplyShape();
         if (!moving) StopAnimation();
     }
@@ -126,8 +124,6 @@ public partial class IslandWindow
             SetShadow(_shadow2, rect, r, 2.5 * spread, 2.0 * spread);
             SetShadow(_shadow3, rect, r, 4.5 * spread, 3.5 * spread);
         }
-
-        StageShift.Y = _shift.Value;
 
         // content: pill fades out first, panel fades/scales in a little after the shape starts moving
         var pillOpacity = 1 - Math.Clamp(p * 3.2, 0, 1);

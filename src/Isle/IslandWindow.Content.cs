@@ -87,7 +87,6 @@ public partial class IslandWindow
             PillPrimary.BeginAnimation(OpacityProperty, new DoubleAnimation(0.2, 1, TimeSpan.FromMilliseconds(160)));
         }
         SetTargets();
-        UpdateEdgeHide();
         var showFullscreenAlert = primary is { IsBanner: true, Priority: PillPriority.Finished };
         if (_fullscreenAlert != showFullscreenAlert)
         {

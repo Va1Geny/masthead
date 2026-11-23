@@ -14,9 +14,6 @@
             <ScaleTransform x:Name="UiScale" ScaleX="1" ScaleY="1" />
         </Grid.LayoutTransform>
         <Canvas x:Name="Stage" Width="640" Height="300" HorizontalAlignment="Center" VerticalAlignment="Top">
-            <Canvas.RenderTransform>
-                <TranslateTransform x:Name="StageShift" />
-            </Canvas.RenderTransform>
 
             <!-- soft shadow: three stacked translucent shapes following the island (cheap, no blur effect) -->
             <Path x:Name="Shadow3" Fill="#08000000" IsHitTestVisible="False" />
