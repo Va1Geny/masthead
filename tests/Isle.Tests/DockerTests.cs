@@ -114,4 +114,46 @@ public class DockerTests
         Assert.Equal(@"\\.\pipe\docker_engine", DockerApi.PipeFor("docker"));
         Assert.Equal(@"\\.\pipe\podman-machine-default", DockerApi.PipeFor("podman"));
     }
+
+    /// <summary>One-shot fake engine on a named pipe: answers the first request with the given raw HTTP response.</summary>
+    static (string Pipe, Task<string> Request) Serve(string response)
+    {
+        var name = "isle-test-" + Guid.NewGuid().ToString("N");
+        var server = new System.IO.Pipes.NamedPipeServerStream(name, System.IO.Pipes.PipeDirection.InOut, 1, System.IO.Pipes.PipeTransmissionMode.Byte, System.IO.Pipes.PipeOptions.Asynchronous);
+        var task = Task.Run(async () =>
+        {
+            using var s = server;
+            await s.WaitForConnectionAsync();
+            var buf = new byte[4096];
+            var req = new StringBuilder();
+            while (!req.ToString().Contains("\r\n\r\n")) req.Append(Encoding.ASCII.GetString(buf, 0, await s.ReadAsync(buf)));
+            await s.WriteAsync(Encoding.UTF8.GetBytes(response));
+            await s.FlushAsync();
+            return req.ToString();
+        });
+        return (@"\\.\pipe\" + name, task);
+    }
+
+    [Fact]
+    public async Task Api_lists_containers_over_a_named_pipe()
+    {
+        var body = List;
+        var (pipe, req) = Serve($"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {Encoding.UTF8.GetByteCount(body)}\r\nConnection: close\r\n\r\n{body}");
+        using var api = new DockerApi(pipe);
+        var boxes = await api.ListAsync();
+        Assert.Equal(4, boxes.Count);
+        Assert.StartsWith("GET /containers/json?all=1 ", await req);
+    }
+
+    [Fact]
+    public async Task Api_streams_events_until_the_engine_closes()
+    {
+        var ev = """{"Type":"container","Action":"die","Actor":{"ID":"a1","Attributes":{"name":"x"}},"time":1700000000}""";
+        var (pipe, _) = Serve($"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n{ev}\n{{\"Type\":\"volume\"}}\n{ev}\n");
+        using var api = new DockerApi(pipe);
+        var seen = new List<DockerEvent>();
+        await api.WatchAsync(seen.Add, CancellationToken.None);
+        Assert.Equal(2, seen.Count);
+        Assert.All(seen, e => Assert.Equal("die", e.Action));
+    }
 }
