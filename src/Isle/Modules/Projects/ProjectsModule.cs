@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
 using Isle.Core;
+using Isle.Modules.Setup;
 using Isle.Views.Projects;
 
 namespace Isle.Modules.Projects;
@@ -32,24 +33,34 @@ public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
             .Where(Directory.Exists).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
     static string Token() => Secret.Unprotect(Settings.Current.Opt("projects.githubToken"));
+    static string GitLabToken() => Secret.Unprotect(Settings.Current.Opt("gitlab.token")) is { Length: > 0 } t ? t : GitHosts.GlabConfigToken(GitHosts.GitLabHost());
+    readonly Dictionary<string, List<BuildRun>> _history = BuildHistory.Load(Isle.Core.Paths.File("builds.json"));
+    HttpClient? _gl;
 
     public void Start()
     {
         island.AddTab(new TabInfo(TabId, "tab.projects", "Icon.Branch", () => new ProjectsView(new ProjectsActions(
             Refresh: ct => RefreshAsync(withCi: true, ct),
-            Reviews: ReviewCountAsync,
-            HasToken: () => Token().Length > 0,
+            Reviews: ReviewsAsync,
+            Builds: () => _history.OrderByDescending(h => h.Value.Count).Take(2).Select(h => (h.Key, (IReadOnlyList<BuildRun>)h.Value.ToList())).ToList(),
+            Fetch: GitHosts.FetchAsync,
+            Pull: GitHosts.PullAsync,
             Configure: () => App.OpenSettings("options"))), 97));
 
         if (Settings.Current.OptBool("projects.builds", true))
         {
             _builds = new BuildWatcher();
-            _builds.Finished += r => island.Dispatcher.BeginInvoke(() => Announce(BuildText(r), r.ExitCode is null or 0 ? "OkBrush" : "DangerBrush", null));
+            _builds.Finished += r => island.Dispatcher.BeginInvoke(() =>
+            {
+                BuildHistory.Add(_history, r.Label, new BuildRun(r.Duration.TotalSeconds, r.ExitCode is null or 0));
+                BuildHistory.Save(Isle.Core.Paths.File("builds.json"), _history);
+                Announce(BuildText(r), r.ExitCode is null or 0 ? "OkBrush" : "DangerBrush", null);
+            });
             _buildTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(3) };
             _buildTimer.Tick += async (_, _) => await Task.Run(() => { try { _builds?.Poll(); } catch (Exception ex) { Logger.Error("build watch", ex); } });
             _buildTimer.Start();
         }
-        if (Paths().Count > 0)
+        if (Paths().Count > 0 && GitHosts.Provider() != SetupModel.None)
         {
             _ciTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMinutes(2) };
             _ciTimer.Tick += async (_, _) => await PollCiAsync();
@@ -70,7 +81,7 @@ public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
         {
             foreach (var repo in await RefreshAsync(withCi: true, CancellationToken.None))
             {
-                if (repo.GitHub is null) continue;
+                if ((repo.GitHub ?? repo.GitLab) is null) continue;
                 var key = repo.Path + "|" + repo.Status?.Branch;
                 if (_lastRuns.TryGetValue(key, out var before) && RepoParse.JustFinished(before, repo.Ci) is { } done)
                 {
@@ -114,13 +125,58 @@ public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
         catch (System.Text.Json.JsonException) { return null; }
     }
 
-    async Task<int?> ReviewCountAsync(CancellationToken ct)
+    /// <summary>PRs/MRs waiting on the user; null when no host is chosen or it is unreachable. GitHub goes through the gh CLI login (Isle never sees a token).</summary>
+    async Task<IReadOnlyList<ReviewItem>?> ReviewsAsync(CancellationToken ct)
     {
-        if (Token().Length == 0) return null;
-        var (status, body) = await GetAsync("https://api.github.com/search/issues?q=" + Uri.EscapeDataString("is:pr is:open review-requested:@me") + "&per_page=1", ct).ConfigureAwait(false);
-        if (status != 200) return null;
-        try { return RepoParse.SearchCount(body); }
+        try
+        {
+            switch (GitHosts.Provider())
+            {
+                case "github":
+                    var (code, json) = await Cli.RunAsync("gh", ["search", "prs", "--review-requested=@me", "--state=open", "--limit", "20", "--json", "number,title,url,repository,author"], null, TimeSpan.FromSeconds(20), ct).ConfigureAwait(false);
+                    return code == 0 ? GitHosts.GhPrs(json) : null;
+                case "gitlab":
+                    var me = await GitLabGetAsync("/user", ct).ConfigureAwait(false);
+                    if (me is null) return null;
+                    using (var u = System.Text.Json.JsonDocument.Parse(me))
+                    {
+                        var name = Uri.EscapeDataString(u.RootElement.GetProperty("username").GetString() ?? "");
+                        var items = new List<ReviewItem>();
+                        foreach (var q in new[] { "reviewer_username=" + name, "assignee_username=" + name })
+                            if (await GitLabGetAsync("/merge_requests?state=opened&scope=all&per_page=20&" + q, ct).ConfigureAwait(false) is { } body)
+                                items.AddRange(GitHosts.GitLabMrs(body).Where(i => items.All(x => x.Url != i.Url)));
+                        return items;
+                    }
+            }
+        }
+        catch (Exception ex) when (ex is System.Text.Json.JsonException or KeyNotFoundException or InvalidOperationException) { }
+        return null;
+    }
+
+    async Task<CiRun?> GitLabPipelineAsync(string project, string branch, CancellationToken ct)
+    {
+        var body = await GitLabGetAsync($"/projects/{Uri.EscapeDataString(project)}/pipelines?per_page=1&ref={Uri.EscapeDataString(branch)}", ct).ConfigureAwait(false);
+        try { return body is null ? null : GitHosts.GitLabPipeline(body); }
         catch (System.Text.Json.JsonException) { return null; }
+    }
+
+    async Task<string?> GitLabGetAsync(string api, CancellationToken ct)
+    {
+        var token = GitLabToken();
+        if (token.Length == 0) return null;
+        _gl ??= new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"https://{GitHosts.GitLabHost()}/api/v4{api}");
+        request.Headers.Add("PRIVATE-TOKEN", token);
+        try
+        {
+            using var response = await _gl.SendAsync(request, ct).ConfigureAwait(false);
+            return response.IsSuccessStatusCode ? await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false) : null;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !ct.IsCancellationRequested)
+        {
+            Logger.Warn($"gitlab: {ex.GetType().Name}");
+            return null;
+        }
     }
 
     async Task<(int Status, string Body)> GetAsync(string url, CancellationToken ct)
@@ -188,6 +244,8 @@ public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
         _builds = null;
         _http?.Dispose();
         _http = null;
+        _gl?.Dispose();
+        _gl = null;
         _lastRuns.Clear();
     }
 

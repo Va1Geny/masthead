@@ -8,8 +8,10 @@ namespace Isle.Views.Projects;
 
 public sealed record ProjectsActions(
     Func<CancellationToken, Task<IReadOnlyList<Repo>>> Refresh,
-    Func<CancellationToken, Task<int?>> Reviews,
-    Func<bool> HasToken,
+    Func<CancellationToken, Task<IReadOnlyList<ReviewItem>?>> Reviews,
+    Func<IReadOnlyList<(string Label, IReadOnlyList<BuildRun> Runs)>> Builds,
+    Func<string, CancellationToken, Task<bool>> Fetch,
+    Func<string, CancellationToken, Task<PullResult>> Pull,
     Action Configure);
 
 /// <summary>
@@ -20,7 +22,8 @@ public sealed class ProjectsView : Grid, ITabView
 {
     readonly ProjectsActions _a;
     readonly StackPanel _rows = new();
-    readonly TextBlock _reviews = new() { Margin = new Thickness(4, 0, 0, 4), Visibility = Visibility.Collapsed, Cursor = System.Windows.Input.Cursors.Hand };
+    readonly StackPanel _top = new();
+    readonly TextBlock _msg = new() { Margin = new Thickness(4, 0, 0, 4), Visibility = Visibility.Collapsed, TextTrimming = TextTrimming.CharacterEllipsis, FontSize = 11.5 };
     DispatcherTimer? _timer;
     CancellationTokenSource? _cts;
 
@@ -29,9 +32,9 @@ public sealed class ProjectsView : Grid, ITabView
         _a = actions;
         RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        _reviews.SetResourceReference(TextBlock.ForegroundProperty, "AccentTextBrush");
-        _reviews.MouseLeftButtonUp += (_, _) => ProcessOps.Open("https://github.com/pulls/review-requested");
-        Children.Add(_reviews);
+        _msg.SetResourceReference(TextBlock.ForegroundProperty, "FgBrush");
+        _top.Children.Add(_msg);
+        Children.Add(_top);
         var scroll = new ScrollViewer { Content = _rows, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
         SetRow(scroll, 1);
         Children.Add(scroll);
@@ -61,17 +64,54 @@ public sealed class ProjectsView : Grid, ITabView
             var repos = await _a.Refresh(cts.Token);
             if (cts.IsCancellationRequested) return;
             Show(repos);
-            var reviews = _a.HasToken() ? await _a.Reviews(cts.Token) : null;
-            if (!cts.IsCancellationRequested) ShowReviews(reviews);
+            var reviews = await _a.Reviews(cts.Token);
+            if (!cts.IsCancellationRequested) ShowReviews(reviews, _a.Builds());
         }
         catch (OperationCanceledException) { }
         catch (Exception ex) { Logger.Error("projects refresh", ex); }
     }
 
-    internal void ShowReviews(int? count)
+    /// <summary>Header of the tab: PRs/MRs waiting on the user (null/empty = hidden) and the build-time trend per command.</summary>
+    internal void ShowReviews(IReadOnlyList<ReviewItem>? reviews, IReadOnlyList<(string Label, IReadOnlyList<BuildRun> Runs)>? builds = null)
     {
-        _reviews.Visibility = count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        if (count > 0) _reviews.Text = Strings.T("projects.reviews", count);
+        while (_top.Children.Count > 1) _top.Children.RemoveAt(1);
+        if (reviews is { Count: > 0 })
+        {
+            var head = Ui.Dim(Strings.T("projects.reviews", reviews.Count), wrap: false);
+            head.Margin = new Thickness(4, 0, 0, 2);
+            _top.Children.Add(head);
+            foreach (var r in reviews.Take(3))
+            {
+                var t = new TextBlock { Text = $"{r.Repo}  ·  {r.Title}", Margin = new Thickness(12, 0, 0, 1), TextTrimming = TextTrimming.CharacterEllipsis, FontSize = 11.5, Cursor = System.Windows.Input.Cursors.Hand, ToolTip = r.Author };
+                t.SetResourceReference(TextBlock.ForegroundProperty, "AccentTextBrush");
+                var url = r.Url;
+                t.MouseLeftButtonUp += (_, _) => ProcessOps.Open(url);
+                _top.Children.Add(t);
+            }
+        }
+        foreach (var (label, runs) in builds ?? [])
+        {
+            if (runs.Count == 0) continue;
+            var t = Ui.Dim($"{label}  {BuildHistory.Spark(runs)}  {BuildHistory.Secs(runs[^1].Seconds)}" + (runs.Count > 1 ? "  ·  " + Strings.T("projects.avg", BuildHistory.Secs(runs.Average(x => x.Seconds))) : ""), wrap: false);
+            t.Margin = new Thickness(4, 0, 0, 1);
+            _top.Children.Add(t);
+        }
+        if (_top.Children.Count > 1) ((FrameworkElement)_top.Children[^1]).Margin = new Thickness(4, 0, 0, 6);
+    }
+
+    async void Run(Repo r, bool pull)
+    {
+        var cts = _cts ??= new CancellationTokenSource();
+        try
+        {
+            _msg.Text = r.Name + ": …";
+            _msg.Visibility = Visibility.Visible;
+            _msg.Text = r.Name + ": " + (pull
+                ? Strings.T("projects.pull." + (await _a.Pull(r.Path, cts.Token)).ToString().ToLowerInvariant())
+                : Strings.T(await _a.Fetch(r.Path, cts.Token) ? "projects.fetched" : "projects.pull.failed"));
+            OnTick(null, EventArgs.Empty);
+        }
+        catch (OperationCanceledException) { }
     }
 
     internal void Show(IReadOnlyList<Repo> repos)
@@ -89,19 +129,25 @@ public sealed class ProjectsView : Grid, ITabView
             return;
         }
         foreach (var r in repos) _rows.Children.Add(Row(r));
+        // Row is an instance method so the git buttons can report into the header
     }
 
-    static FrameworkElement Row(Repo r)
+    FrameworkElement Row(Repo r)
     {
         var row = new DockPanel { Margin = new Thickness(4, 0, 0, 4) };
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        if (r.Status is { HasUpstream: true })
+        {
+            buttons.Children.Add(Action("Icon.Reset", Strings.T("projects.fetch"), () => Run(r, false)));
+            buttons.Children.Add(Action("Icon.Download", Strings.T("projects.pull"), () => Run(r, true)));
+        }
         buttons.Children.Add(Action("Icon.Folder", Strings.T("projects.openFolder"), () => ProcessOps.Open(r.Path)));
         buttons.Children.Add(Action("Icon.Code", Strings.T("projects.openCode"), () => ProcessOps.Open("vscode://file/" + r.Path.Replace('\\', '/'))));
         DockPanel.SetDock(buttons, Dock.Right);
         row.Children.Add(buttons);
 
-        if (r.GitHub is not null)
+        if (r.GitHub is not null || r.GitLab is not null)
         {
             var ci = CiBadge(r);
             DockPanel.SetDock(ci, Dock.Right);
@@ -141,8 +187,8 @@ public sealed class ProjectsView : Grid, ITabView
         };
         var t = new TextBlock { Text = glyph, FontSize = 13, FontWeight = FontWeights.SemiBold, TextAlignment = TextAlignment.Center };
         t.SetResourceReference(TextBlock.ForegroundProperty, brush);
-        var url = r.Ci?.Url is { Length: > 0 } u ? u : $"https://github.com/{r.GitHub}/actions";
-        var b = Ui.IconButton(t, 28, () => ProcessOps.Open(url), "projects ci");
+        var url = r.Ci?.Url is { Length: > 0 } u ? u : r.GitLab is not null ? null : $"https://github.com/{r.GitHub}/actions";
+        var b = Ui.IconButton(t, 28, () => { if (url is not null) ProcessOps.Open(url); }, "projects ci");
         var tip = Strings.T(key) + (r.Ci is { Name.Length: > 0 } run ? " · " + run.Name : "");
         b.ToolTip = tip;
         System.Windows.Automation.AutomationProperties.SetName(b, tip);

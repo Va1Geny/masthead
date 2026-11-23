@@ -211,6 +211,8 @@ public sealed class SettingsView : Grid, ITabView
         Row("set.projectsPaths", OptText("projects.paths", @"C:\Users\me\Projects\app", "projects"), "set.projectsPaths.hint", wide: true);
         Row("set.projectsBuilds", OptSwitch("projects.builds", true, restart: "projects"), "set.projectsBuilds.hint");
         Row("set.projectsToken", SecretField("projects.githubToken", restart: "projects"), "set.projectsToken.hint");
+        Row("set.gitlabHost", OptText("gitlab.host", "gitlab.com", "projects", "gitlab.com"), "set.gitlabHost.hint");
+        Row("set.gitlabToken", SecretField("gitlab.token", restart: "projects"), "set.gitlabToken.hint");
 
         OptionGroup("logs");
         Row("set.logsFiles", OptText("logs.files", @"C:\Users\me\Projects\api\logs\app.log", "logs"), "set.logsFiles.hint", wide: true);
