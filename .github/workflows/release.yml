@@ -25,7 +25,7 @@ jobs:
       - name: Check the tag matches the version
         shell: pwsh
         run: |
-          $v = ([xml](Get-Content Directory.Build.props)).Project.PropertyGroup.Version
+          $v = (Select-Xml -Path Directory.Build.props -XPath '//Version').Node.InnerText
           if ("v$v" -ne $env:GITHUB_REF_NAME) { throw "tag $env:GITHUB_REF_NAME does not match <Version>$v</Version>" }
       - name: Build, test and publish
         shell: pwsh
