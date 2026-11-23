@@ -119,6 +119,7 @@ public class StringsTests
     public void Each_pack_has_the_same_keys_in_both_languages()
     {
         Assert.Equal(Isle.Home.HomeStrings.En.Keys.Order(), Isle.Home.HomeStrings.Uk.Keys.Order());
+        Assert.Equal(Isle.Music.MusicStrings.En.Keys.Order(), Isle.Music.MusicStrings.Uk.Keys.Order());
         Assert.Equal(Isle.Dev.DevStrings.En.Keys.Order(), Isle.Dev.DevStrings.Uk.Keys.Order());
     }
 
