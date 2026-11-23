@@ -28,7 +28,10 @@ public sealed record SettingsActions(
 /// </summary>
 public sealed class SettingsView : Grid, ITabView
 {
-    public static readonly string[] Sections = ["general", "modules", "options", "hotkeys", "about"];
+    public static string[] Sections => DevPackage ? ["general", "options", "about"] : ["general", "modules", "options", "hotkeys", "about"];
+
+    /// <summary>Dev package (shell + Music + Dev): the Home pack's "timers" module is absent while Dev's "sysmon" is there. Settings are trimmed to match.</summary>
+    internal static bool DevPackage => ModuleIds.Contains("sysmon") && !ModuleIds.Contains("timers");
 
     /// <summary>Module ids in the order shown (tray last: it is the way back when the island is hidden). Packs add theirs with <see cref="AddModules"/>.</summary>
     internal static readonly List<string> ModuleIds = ["agents", "tray"];
@@ -167,12 +170,15 @@ public sealed class SettingsView : Grid, ITabView
                 v => v == "-1" ? "set.monitor.primary" : null, v => (int.Parse(v, CultureInfo.InvariantCulture) + 1).ToString(CultureInfo.InvariantCulture)));
         }
         Row("set.shape", Choice(["notch", "pill"], S.Opt("shape", "notch") == "pill" ? "pill" : "notch", v => { S.SetOpt("shape", v); Save("Options"); }, v => "set.shape." + v));
-        Row("set.clock", Switch(S.ShowClock, on => { S.ShowClock = on; Save("ShowClock"); }));
+        if (!DevPackage) Row("set.clock", Switch(S.ShowClock, on => { S.ShowClock = on; Save("ShowClock"); }));
 
         Group("set.behaviour");
         Row("set.fullscreen", Switch(S.HideInFullscreen, on => { S.HideInFullscreen = on; Save("HideInFullscreen"); }), "set.fullscreen.hint");
-        Row("set.edge", Switch(S.AutoHideEdge, on => { S.AutoHideEdge = on; Save("AutoHideEdge"); }), "set.edge.hint");
-        Row("set.clickThrough", Switch(S.ClickThrough, on => { S.ClickThrough = on; Save("ClickThrough"); }), "set.clickThrough.hint");
+        if (!DevPackage)
+        {
+            Row("set.edge", Switch(S.AutoHideEdge, on => { S.AutoHideEdge = on; Save("AutoHideEdge"); }), "set.edge.hint");
+            Row("set.clickThrough", Switch(S.ClickThrough, on => { S.ClickThrough = on; Save("ClickThrough"); }), "set.clickThrough.hint");
+        }
         Row("set.autostart", Switch(SafeAutostart(), on => { try { Autostart.Set(on); } catch (Exception ex) { Logger.Error("autostart", ex); } Render(); }));
         Row("set.excluded", TextField(string.Join(", ", S.ExcludedApps), v =>
         {
@@ -194,6 +200,7 @@ public sealed class SettingsView : Grid, ITabView
         }));
         _page.Children.Add(openApps);
         Row("set.excluded.overlap", Switch(S.ExcludedAppsOnlyOnOverlap, on => { S.ExcludedAppsOnlyOnOverlap = on; Save("ExcludedAppsOnlyOnOverlap"); }));
+        if (DevPackage) foreach (var h in Hotkeys().Where(h => h.Id == "toggle")) HotkeyRow(h);
     }
 
     void ModulesPage()
@@ -248,18 +255,23 @@ public sealed class SettingsView : Grid, ITabView
             n.Margin = new Thickness(0, 0, 0, 6);
             _page.Children.Add(n);
         }
-        IReadOnlyList<HotkeyInfo> list;
-        try { list = _a.Hotkeys(); }
-        catch (Exception ex) { Logger.Error("hotkey list", ex); list = []; }
-        foreach (var h in list)
-        {
-            var cell = new StackPanel { Orientation = Orientation.Horizontal };
-            if (!string.Equals(h.Gesture, h.DefaultGesture, StringComparison.OrdinalIgnoreCase))
-                cell.Children.Add(IconButton("Icon.Reset", "set.hkReset", () => Rebind(h.Id, null)));
-            cell.Children.Add(HotkeyBox(h));
-            var hint = h.Gesture.Length == 0 ? "set.hkOff" : !h.Registered ? "set.hkFailed" : null;
-            Row(h.TitleKey, cell, hint, hintBrush: hint == "set.hkFailed" ? "DangerBrush" : null);
-        }
+        foreach (var h in Hotkeys()) HotkeyRow(h);
+    }
+
+    IReadOnlyList<HotkeyInfo> Hotkeys()
+    {
+        try { return _a.Hotkeys(); }
+        catch (Exception ex) { Logger.Error("hotkey list", ex); return []; }
+    }
+
+    void HotkeyRow(HotkeyInfo h)
+    {
+        var cell = new StackPanel { Orientation = Orientation.Horizontal };
+        if (!string.Equals(h.Gesture, h.DefaultGesture, StringComparison.OrdinalIgnoreCase))
+            cell.Children.Add(IconButton("Icon.Reset", "set.hkReset", () => Rebind(h.Id, null)));
+        cell.Children.Add(HotkeyBox(h));
+        var hint = h.Gesture.Length == 0 ? "set.hkOff" : !h.Registered ? "set.hkFailed" : null;
+        Row(h.TitleKey, cell, hint, hintBrush: hint == "set.hkFailed" ? "DangerBrush" : null);
     }
 
     void About()
@@ -403,6 +415,9 @@ public sealed class SettingsView : Grid, ITabView
 
     internal ToggleButton OptSwitch(string key, bool fallback, string? restart = null) =>
         Switch(S.OptBool(key, fallback), on => { S.SetOpt(key, on); Save("Options", restart); });
+
+    internal FrameworkElement OptText(string key, string placeholder, string? restart = null, string fallback = "") =>
+        TextField(S.Opt(key, fallback), t => { S.SetOpt(key, t.Trim()); Save("Options", restart); }, placeholder);
 
     /// <param name="labelKey">Strings key for a value (null → <paramref name="literal"/> or the value itself).</param>
     internal WrapPanel Choice(IReadOnlyList<string> values, string current, Action<string> picked, Func<string, string?>? labelKey = null, Func<string, string>? literal = null)
