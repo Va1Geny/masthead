@@ -1,3 +1,4 @@
+using System.Net.Security;
 using Isle.Modules.Servers;
 
 namespace Isle.Tests;
@@ -94,6 +95,43 @@ public class ServersTests
             Assert.Equal(["tls n/a"], bad);
         }
         finally { l.Stop(); }
+    }
+
+    [Fact]
+    public void Tls_errors_map_to_states()
+    {
+        var now = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var far = now.AddDays(90);
+        Assert.Empty(WatchItem.TlsProblems(SslPolicyErrors.None, false, far, now, 14));
+        Assert.Equal(["untrusted cert (name)"], WatchItem.TlsProblems(SslPolicyErrors.RemoteCertificateNameMismatch, false, far, now, 14));
+        Assert.Equal(["untrusted cert (chain)"], WatchItem.TlsProblems(SslPolicyErrors.RemoteCertificateChainErrors, false, far, now, 14)); // self-signed too
+        Assert.Equal(["untrusted cert (name, chain)"], WatchItem.TlsProblems(SslPolicyErrors.RemoteCertificateNameMismatch | SslPolicyErrors.RemoteCertificateChainErrors, false, far, now, 14));
+        Assert.Equal(["untrusted cert (none)"], WatchItem.TlsProblems(SslPolicyErrors.RemoteCertificateNotAvailable, false, far, now, 14));
+        // expiry is still read with a bad chain; an expiry-only chain error is not reported twice
+        Assert.Equal(["cert expired"], WatchItem.TlsProblems(SslPolicyErrors.RemoteCertificateChainErrors, true, now.AddDays(-1), now, 14));
+        Assert.Equal(["cert 5d", "untrusted cert (chain)"], WatchItem.TlsProblems(SslPolicyErrors.RemoteCertificateChainErrors, false, now.AddDays(5), now, 14));
+    }
+
+    [Fact]
+    public void Watch_add_validates_and_round_trips()
+    {
+        var have = WatchItem.Parse("https://a.example.com");
+        Assert.Null(WatchItem.TryNew("  ", false, false, false, have));
+        Assert.Null(WatchItem.TryNew("a b", false, false, false, have));
+        Assert.Null(WatchItem.TryNew("x;y", false, false, false, have));
+        Assert.Null(WatchItem.TryNew(" HTTPS://A.example.com ", true, false, false, have)); // duplicate, case and trim
+        Assert.Null(WatchItem.TryNew("ftp://x", false, false, false, have));
+        Assert.Equal(new WatchItem("b.example.com", false, true, false), WatchItem.TryNew(" b.example.com ", false, false, false, have)); // default flags
+        var n = WatchItem.TryNew("b.example.com:8443", true, true, true, have)!;
+        Assert.Equal(have.Append(n).ToList(), WatchItem.Parse(WatchItem.Format(have.Append(n))));
+    }
+
+    [Fact]
+    public void Reach_list_set_and_unset()
+    {
+        Assert.Equal("db; web", ServerInfo.SetReach("db", "web", true));
+        Assert.Equal("WEB", ServerInfo.SetReach("db; WEB", "db", false));
+        Assert.Equal("db; web", ServerInfo.SetReach("db; WEB", "web", true)); // no duplicate
     }
 
     [Fact]

@@ -190,6 +190,14 @@ public static class ServerInfo
         catch (Exception ex) when (ex is SocketException or OperationCanceledException or IOException) { return false; }
     }
 
+    /// <summary>Adds or removes <paramref name="alias"/> in the ";"-separated per-host list (case-insensitive, no duplicates).</summary>
+    public static string SetReach(string perHost, string alias, bool on)
+    {
+        var l = perHost.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Where(a => !a.Equals(alias, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (on) l.Add(alias);
+        return string.Join("; ", l);
+    }
+
     public static bool ReachWanted(bool global, string perHost, string alias) =>
         global || perHost.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Contains(alias, StringComparer.OrdinalIgnoreCase);
 }
@@ -206,10 +214,45 @@ public sealed record WatchItem(string Target, bool Http, bool Tls, bool Status)
         return new WatchItem(p[0], flags.Contains("http"), flags.Contains("tls"), flags.Contains("status"));
     }).ToList();
 
+    /// <summary>Same text form Parse reads, with explicit flags so it round-trips.</summary>
+    public string Format() => Target + (Http ? " http" : "") + (Tls ? " tls" : "") + (Status ? " status" : "");
+
+    public static string Format(IEnumerable<WatchItem> items) => string.Join("; ", items.Select(i => i.Format()));
+
+    /// <summary>A new entry from the Add row: trimmed, one valid http(s) target without whitespace or ';', not already listed. No flags = Parse's defaults. Null when rejected.</summary>
+    public static WatchItem? TryNew(string input, bool http, bool tls, bool status, IEnumerable<WatchItem> existing)
+    {
+        var t = input.Trim();
+        if (t.Length == 0 || t.Any(c => char.IsWhiteSpace(c) || c == ';')) return null;
+        if (existing.Any(i => i.Target.Equals(t, StringComparison.OrdinalIgnoreCase))) return null;
+        var item = Parse(t + (http ? " http" : "") + (tls ? " tls" : "") + (status ? " status" : "")).Single();
+        return item.Url is null ? null : item;
+    }
+
     Uri? Url => Uri.TryCreate(Target.Contains("://") ? Target : "https://" + Target, UriKind.Absolute, out var u) && u.Scheme is "http" or "https" ? u : null;
 
     public static bool HttpDown(int? status) => status is null or >= 400;
     public static bool CertSoon(DateTime notAfterUtc, DateTime nowUtc, int days) => notAfterUtc - nowUtc <= TimeSpan.FromDays(days);
+
+    /// <summary>
+    /// Problems of the TLS check from the certificate expiry and the handshake's trust verdict. <paramref name="chainOnlyExpired"/>: the only chain
+    /// error is NotTimeValid, which the expiry text already covers. Untrusted = name mismatch, chain error (incl. self-signed) or no certificate.
+    /// </summary>
+    public static List<string> TlsProblems(SslPolicyErrors errors, bool chainOnlyExpired, DateTime notAfterUtc, DateTime nowUtc, int days)
+    {
+        List<string> bad = [];
+        if (CertSoon(notAfterUtc, nowUtc, days)) bad.Add(notAfterUtc < nowUtc ? "cert expired" : $"cert {(int)(notAfterUtc - nowUtc).TotalDays}d");
+        if (chainOnlyExpired) errors &= ~SslPolicyErrors.RemoteCertificateChainErrors;
+        if (errors != SslPolicyErrors.None)
+        {
+            List<string> why = [];
+            if (errors.HasFlag(SslPolicyErrors.RemoteCertificateNameMismatch)) why.Add("name");
+            if (errors.HasFlag(SslPolicyErrors.RemoteCertificateChainErrors)) why.Add("chain");
+            if (errors.HasFlag(SslPolicyErrors.RemoteCertificateNotAvailable)) why.Add("none");
+            bad.Add($"untrusted cert ({string.Join(", ", why)})");
+        }
+        return bad;
+    }
 
     /// <summary>The "indicator" of a statuspage /api/v2/status.json when it is not "none"; null when fine or unparsable.</summary>
     public static string? StatusProblem(string json)
@@ -250,14 +293,18 @@ public sealed record WatchItem(string Target, bool Http, bool Tls, bool Status)
             {
                 using var c = new TcpClient();
                 await c.ConnectAsync(u.Host, u.Port, ct);
-                // ponytail: accepts any chain so the expiry can still be read; trust problems are not reported
-                using var ssl = new SslStream(c.GetStream(), false, (_, _, _, _) => true);
+                // accepts any chain so the expiry can still be read; the trust verdict is recorded and reported
+                var errors = SslPolicyErrors.None;
+                var onlyExpired = false;
+                using var ssl = new SslStream(c.GetStream(), false, (_, _, chain, e) =>
+                {
+                    errors = e;
+                    onlyExpired = chain is { ChainStatus.Length: > 0 } && chain.ChainStatus.All(x => x.Status == System.Security.Cryptography.X509Certificates.X509ChainStatusFlags.NotTimeValid);
+                    return true;
+                });
                 await ssl.AuthenticateAsClientAsync(new SslClientAuthenticationOptions { TargetHost = u.Host }, ct);
                 if (ssl.RemoteCertificate is { } cert)
-                {
-                    var after = new System.Security.Cryptography.X509Certificates.X509Certificate2(cert).NotAfter.ToUniversalTime();
-                    if (CertSoon(after, DateTime.UtcNow, certDays)) bad.Add(after < DateTime.UtcNow ? "cert expired" : $"cert {(int)(after - DateTime.UtcNow).TotalDays}d");
-                }
+                    bad.AddRange(TlsProblems(errors, onlyExpired, new System.Security.Cryptography.X509Certificates.X509Certificate2(cert).NotAfter.ToUniversalTime(), DateTime.UtcNow, certDays));
             }
             catch (Exception ex) when (ex is IOException or SocketException or System.Security.Authentication.AuthenticationException or OperationCanceledException) { bad.Add("tls n/a"); }
         }
