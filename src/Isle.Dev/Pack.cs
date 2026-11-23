@@ -46,15 +46,15 @@ public static class Pack
         v.Row("set.portsNotify", v.OptSwitch("ports.notify", true, restart: "ports"), "set.portsNotify.hint");
 
         group("projects");
-        v.Row("set.projectsPaths", SettingsView.TextField(s.Opt("projects.paths"), t => { s.SetOpt("projects.paths", t.Trim()); v.Save("Options", restart: "projects"); }, @"C:\Users\me\Projects\app"), "set.projectsPaths.hint", wide: true);
+        v.Row("set.projectsPaths", v.OptText("projects.paths", @"C:\Users\me\Projects\app", "projects"), "set.projectsPaths.hint", wide: true);
         v.Row("set.projectsBuilds", v.OptSwitch("projects.builds", true, restart: "projects"), "set.projectsBuilds.hint");
         v.Row("set.projectsToken", v.SecretField("projects.githubToken", restart: "projects"), "set.projectsToken.hint");
 
         group("logs");
-        v.Row("set.logsFiles", SettingsView.TextField(s.Opt("logs.files"), t => { s.SetOpt("logs.files", t.Trim()); v.Save("Options", restart: "logs"); }, @"C:\Users\me\Projects\api\logs\app.log"), "set.logsFiles.hint", wide: true);
-        v.Row("set.logsPattern", SettingsView.TextField(s.Opt("logs.pattern", Modules.Logs.LogWatchModule.DefaultPattern), t => { s.SetOpt("logs.pattern", t.Trim()); v.Save("Options", restart: "logs"); }, Modules.Logs.LogWatchModule.DefaultPattern), "set.logsPattern.hint", wide: true);
+        v.Row("set.logsFiles", v.OptText("logs.files", @"C:\Users\me\Projects\api\logs\app.log", "logs"), "set.logsFiles.hint", wide: true);
+        v.Row("set.logsPattern", v.OptText("logs.pattern", Modules.Logs.LogWatchModule.DefaultPattern, "logs", Modules.Logs.LogWatchModule.DefaultPattern), "set.logsPattern.hint", wide: true);
 
         group("kube");
-        v.Row("set.kubePattern", SettingsView.TextField(s.Opt("kube.prodPattern", Modules.Kube.KubeConfig.DefaultPattern), t => { s.SetOpt("kube.prodPattern", t.Trim()); v.Save("Options", restart: "kube"); }, Modules.Kube.KubeConfig.DefaultPattern), "set.kubePattern.hint", wide: true);
+        v.Row("set.kubePattern", v.OptText("kube.prodPattern", Modules.Kube.KubeConfig.DefaultPattern, "kube", Modules.Kube.KubeConfig.DefaultPattern), "set.kubePattern.hint", wide: true);
     }
 }

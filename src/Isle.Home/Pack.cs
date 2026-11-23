@@ -90,18 +90,18 @@ public static class Pack
             else view.Render();
         }, "4455", width: 70));
         view.Row("set.obsPassword", view.SecretField("live.obsPassword", restart: "live"));
-        view.Row("set.downloads", SettingsView.TextField(s.Opt("live.downloadsFolder"), v => { s.SetOpt("live.downloadsFolder", v.Trim()); view.Save("Options", restart: "live"); }, Strings.T("set.default")), wide: true);
+        view.Row("set.downloads", view.OptText("live.downloadsFolder", Strings.T("set.default"), "live"), wide: true);
 
         group("clipboard");
         view.Row("set.clipLimit", view.Choice(["50", "100", "200", "500", "1000"], s.OptInt("clip.limit", 200).ToString(CultureInfo.InvariantCulture),
             v => { s.SetOpt("clip.limit", v); view.Save("Options", restart: "clipboard"); }, null, v => v));
-        view.Row("set.clipExcluded", SettingsView.TextField(s.Opt("clip.excludedApps"), v => { s.SetOpt("clip.excludedApps", v.Trim()); view.Save("Options"); }, "keepass, 1password"), "set.clipExcluded.hint", wide: true);
+        view.Row("set.clipExcluded", view.OptText("clip.excludedApps", "keepass, 1password"), "set.clipExcluded.hint", wide: true);
 
         group("shelf");
         view.Row("set.shelfRemove", view.OptSwitch("shelf.removeAfterDrop", false));
 
         group("commands");
-        view.Row("set.cmdFolders", SettingsView.TextField(s.Opt("cmd.folders"), v => { s.SetOpt("cmd.folders", v.Trim()); view.Save("Options", restart: "commands"); }, @"C:\Users\me\Projects"), "set.cmdFolders.hint", wide: true);
+        view.Row("set.cmdFolders", view.OptText("cmd.folders", @"C:\Users\me\Projects", "commands"), "set.cmdFolders.hint", wide: true);
 
         group("tools");
         view.Row("set.recAudio", view.OptSwitch("rec.systemAudio", true));
