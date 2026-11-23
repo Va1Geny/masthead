@@ -79,7 +79,7 @@ public sealed class SettingsView : Grid, ITabView
         Render();
     }
 
-    public string Section => _section;
+    internal string Section => _section;
     internal SettingsActions Actions => _a;
 
     public void ShowSection(string section)
@@ -277,15 +277,7 @@ public sealed class SettingsView : Grid, ITabView
         Render();
     }
 
-    static void OpenPath(string path)
-    {
-        try
-        {
-            if (!File.Exists(path) && !Directory.Exists(path)) path = Paths.Root;
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
-        }
-        catch (Exception ex) { Logger.Error("open path", ex); }
-    }
+    static void OpenPath(string path) => ProcessOps.Open(File.Exists(path) || Directory.Exists(path) ? path : Paths.Root);
 
 
     static List<ScreenInfo> SafeScreens()

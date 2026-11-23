@@ -224,7 +224,6 @@ public class AgentTests
         Assert.NotNull(r);
         Assert.False(r.IsQuestion);
         Assert.Equal("rm -rf build", (string?)JsonNode.Parse(r.ApprovalInput!)!["command"]);
-        Assert.Equal(AgentState.Waiting, b.Urgent);
         // status messages do not hide a pending request
         b.Apply(Msg(Input("PreToolUse", "Read", new JsonObject { ["file_path"] = @"C:\a\b.cs" })));
         Assert.Equal(AgentState.Waiting, b.Sessions[0].State);

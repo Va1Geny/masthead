@@ -94,8 +94,6 @@ public sealed class AgentBook(Func<DateTimeOffset> now)
     public IReadOnlyList<AgentSession> Sessions =>
         [.. _sessions.Values.OrderByDescending(s => s.State).ThenByDescending(s => s.Updated)];
 
-    public AgentState Urgent => _sessions.Count == 0 ? AgentState.Idle : _sessions.Values.Max(s => s.State);
-
     public IEnumerable<AgentRequest> AllPending => _sessions.Values.SelectMany(s => s.Pending);
 
     /// <summary>Applies one hook message. Returns the request to wait on when the hook waits for an answer

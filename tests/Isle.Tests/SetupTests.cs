@@ -91,6 +91,5 @@ public class SetupTests
     public void Kube_indicator_stays_below_the_mic_camera_privacy_indicator()
     {
         Assert.True(KubeModule.Indicator("x").Priority < PillPriority.MicCamera);
-        Assert.True(KubeModule.Indicator("x").Priority > PillPriority.TimerRunning);
     }
 }

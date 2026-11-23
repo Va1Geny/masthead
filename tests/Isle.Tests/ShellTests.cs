@@ -119,7 +119,7 @@ public class PillQueueTests
         var q = new PillQueue();
         q.Set(Item("idle", PillPriority.Idle));
         q.Set(Item("music", PillPriority.Music, compact: true));
-        q.Set(Item("timer", PillPriority.TimerRunning, compact: true));
+        q.Set(Item("timer", PillPriority.MicCamera, compact: true));
         Assert.Equal("timer", q.Primary?.Id);
         Assert.Equal("music", q.Secondary?.Id);
         q.Remove("timer");

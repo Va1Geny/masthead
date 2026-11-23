@@ -39,10 +39,8 @@ public class HotkeyHoldTests
         });
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void Teardown_discards_the_pending_release(bool detach)
+    [Fact]
+    public void Teardown_discards_the_pending_release()
     {
         Sta.Run(_ =>
         {
@@ -51,8 +49,7 @@ public class HotkeyHoldTests
             hotkeys.Register("hold", "", "", () => { }, () => releases++);
             hotkeys.Attach(new IntPtr(1));
             Assert.True(hotkeys.HandleHotkey(HoldId));
-            if (detach) hotkeys.Detach();
-            else hotkeys.Unregister("hold");
+            hotkeys.Detach();
             hotkeys.Suspend(true);
             Assert.Equal(0, releases);
         });

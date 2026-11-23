@@ -77,6 +77,5 @@ public class AgentSwitchTests
         Assert.Equal("SessionStart", Event("SessionStart"));
         var book = new AgentBook(() => DateTimeOffset.Now);
         book.Apply(HookMessage.Parse(HookProtocol.Request("gemini", false, 60, new JsonObject { ["session_id"] = "g1", ["cwd"] = @"C:\Code\weather-api", ["hook_event_name"] = "BeforeTool", ["tool_name"] = "run_shell_command" }))!);
-        Assert.Equal(AgentState.Working, book.Urgent);
     }
 }

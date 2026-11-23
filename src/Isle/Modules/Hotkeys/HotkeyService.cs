@@ -144,15 +144,6 @@ public sealed class HotkeyService
         Changed?.Invoke();
     }
 
-    public void Unregister(string id)
-    {
-        if (!_entries.Remove(id, out var e)) return;
-        _order.Remove(id);
-        // The module owns capture cleanup during teardown. Releasing here could start transcription.
-        Unbind(e, releaseHold: false);
-        Changed?.Invoke();
-    }
-
     /// <summary>Changes a hotkey ("" = disabled, null = back to default) and saves it.</summary>
     public bool Rebind(string id, string? gesture)
     {
