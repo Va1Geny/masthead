@@ -45,6 +45,7 @@ public static class SetupFlow
         SetupModel.Apply(Settings.Current, answers, ticked);
         HookInstaller.RemoveFromOthers(answers["agent"], HookTarget.All(), DateTime.Now); // only Isle's own entries
         Settings.Current.Save("Modules");
+        App.Host.Stop("docker"); // reads setup.containers only in Start, so restart it with the new answer
         App.Host.Sync();
         w.HideOverlay();
     }
