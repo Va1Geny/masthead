@@ -163,15 +163,16 @@ public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
     {
         var body = await GitLabGetAsync($"/projects/{Uri.EscapeDataString(project)}/pipelines?per_page=1&ref={Uri.EscapeDataString(branch)}", ct).ConfigureAwait(false);
         try { return body is null ? null : GitHosts.GitLabPipeline(body); }
-        catch (System.Text.Json.JsonException) { return null; }
+        catch (Exception ex) when (ex is System.Text.Json.JsonException or KeyNotFoundException or InvalidOperationException) { return null; }
     }
 
     async Task<string?> GitLabGetAsync(string api, CancellationToken ct)
     {
         var token = GitLabToken();
-        if (token.Length == 0) return null;
-        _gl ??= new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(15) };
-        using var request = new HttpRequestMessage(HttpMethod.Get, $"https://{GitHosts.GitLabHost()}/api/v4{api}");
+        if (token.Length == 0 || GitHosts.GitLabApi(GitHosts.GitLabHost(), api) is not { } url) return null;
+        // No redirects (the token header would follow them); the cap bounds what a hostile server can make Isle buffer.
+        _gl ??= new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(15), MaxResponseContentBufferSize = 4 << 20 };
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Add("PRIVATE-TOKEN", token);
         try
         {

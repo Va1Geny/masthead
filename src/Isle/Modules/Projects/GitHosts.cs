@@ -18,6 +18,10 @@ public static partial class GitHosts
     public static string Provider() => Settings.Current.Opt("setup.git", "none");
     public static string GitLabHost() => Settings.Current.Opt("gitlab.host", "gitlab.com").Trim().TrimEnd('/');
 
+    /// <summary>https://HOST/api/v4 + <paramref name="api"/>; null unless HOST is just a host name with an optional port ('@', '/', '?' or '#' would send the token to another server).</summary>
+    public static Uri? GitLabApi(string host, string api) =>
+        host.Length > 0 && host.IndexOfAny(['/', '\\', '?', '#', '@']) < 0 && Uri.TryCreate($"https://{host}/api/v4{api}", UriKind.Absolute, out var u) ? u : null;
+
     /// <summary>Output of <c>gh search prs --json number,title,url,repository,author</c>.</summary>
     public static List<ReviewItem> GhPrs(string json)
     {

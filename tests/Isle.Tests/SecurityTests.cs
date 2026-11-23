@@ -65,6 +65,15 @@ public class SecurityTests
     }
 
     [Fact]
+    public void GitLab_token_goes_only_to_the_configured_host()
+    {
+        Assert.Equal("https://gitlab.example.com/api/v4/user", GitHosts.GitLabApi("gitlab.example.com", "/user")?.AbsoluteUri);
+        Assert.Equal("https://gitlab.example.com:8443/api/v4/user", GitHosts.GitLabApi("gitlab.example.com:8443", "/user")?.AbsoluteUri);
+        foreach (var bad in new[] { "gitlab.example.com@attacker.example", "attacker.example/x", "attacker.example?", "attacker.example#", @"a\b", "" })
+            Assert.Null(GitHosts.GitLabApi(bad, "/user"));
+    }
+
+    [Fact]
     public async Task Hook_pipe_drops_clients_from_other_machines()
     {
         var name = "Isle.Agents.test." + Guid.NewGuid().ToString("N");
