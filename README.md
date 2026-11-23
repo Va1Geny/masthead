@@ -5,10 +5,14 @@
 **A Dynamic Island for Windows, for people who live in terminals.**<br>
 A small notch that hangs from the top of the screen, shows what your machine and your coding agents are doing, and opens into a panel when you hover it.
 
-[![Windows 10/11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)](#build-and-run)
+[![Windows 10/11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)](#download)
 [![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![CI](https://github.com/Va1Geny/island/actions/workflows/ci.yml/badge.svg)](https://github.com/Va1Geny/island/actions/workflows/ci.yml)
+
+<img src="docs/images/hero-music.png" alt="The island with the music mini player" width="860">
+
+[Download](#download) · [Features](#features) · [Build](#build-and-run) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md)
 
 </div>
 
@@ -16,6 +20,29 @@ This is a Dev-focused fork of [BKyrychenko/island](https://github.com/BKyrychenk
 author; all credit for the island itself goes there. The upstream repository keeps the Community app (timers, notes,
 clipboard, command bar, AI chat, weather and more). This fork is one app, `Isle.exe`, with the shell, Music and the
 developer features below, and nothing else.
+
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center" width="50%"><img src="docs/images/setup.png" alt="First-run setup"><br><b>First-run setup</b></td>
+    <td align="center" width="50%"><img src="docs/images/agents.png" alt="Agents tab"><br><b>Agents</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/dev-system.png" alt="System tab"><br><b>System</b></td>
+    <td align="center"><img src="docs/images/dev-ports.png" alt="Ports tab"><br><b>Ports</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/dev-docker.png" alt="Docker tab"><br><b>Docker</b></td>
+    <td align="center"><img src="docs/images/dev-projects.png" alt="Projects tab"><br><b>Projects</b></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/dev-servers.png" alt="Servers tab"><br><b>Servers</b></td>
+    <td align="center"><img src="docs/images/dev-usage.png" alt="Usage tab"><br><b>Usage</b></td>
+  </tr>
+</table>
+
+<sub>All screenshots use demo data.</sub>
 
 ## Features
 
@@ -25,35 +52,26 @@ developer features below, and nothing else.
 - **Music** — follows any app that reports to Windows media controls (Spotify, browsers, VLC…): a mini player in the
   pill with album art, title, artist and previous / play-pause / next, a banner on track change, and an accent colour
   taken from the art.
-  <img src="docs/images/pill-music.png" alt="Music mini player" width="340">
 - **Agents** — cards for Claude Code and Codex sessions: permission requests you can answer from the island, subagent
   progress, the latest file edit, and a shortcut back to the session's terminal tab. Hooks for Claude Code, Codex and
   Gemini CLI; switching agents removes Isle's hooks from the others.
-  <img src="docs/images/agents.png" alt="Agents tab" width="520">
 - **System** — CPU (with the busiest core), memory, GPU load and VRAM, and network, each with a one-minute sparkline,
   plus the busiest processes with **End task**; a pill when CPU or memory stays above 90% for 30 seconds.
-  <img src="docs/images/dev-system.png" alt="System tab" width="520">
 - **Ports** — what your dev servers and databases listen on, with **Open in browser** and **End**, plus your WSL
   distributions. A pill tells you when a new server starts.
-  <img src="docs/images/dev-ports.png" alt="Ports tab" width="520">
 - **Docker** — containers grouped by compose project over the Docker (or Podman) engine pipe, updated live from engine
   events: start / stop / restart, live-following logs, compose up / restart / down, friendly labels for local databases,
   disk usage and a cleanup that asks first (volumes are never pruned). Compose buttons appear only for projects whose
   compose files are on a local drive. Pills when a container keeps crashing or the engine stops.
-  <img src="docs/images/dev-docker.png" alt="Docker tab" width="520">
 - **Projects** — branch, changes and ahead/behind of watched repositories with the latest CI run (GitHub Actions via
   `gh`, GitLab pipelines), **Fetch** and fast-forward-only **Pull**, pull requests waiting for your review, GitLab merge
   requests, and a build-time sparkline per project. Pills when CI or a local build or test run (`dotnet`, `npm`,
   `cargo`, `go`, `pytest`, `make`…) finishes.
-  <img src="docs/images/dev-projects.png" alt="Projects tab" width="520">
 - **Servers** — hosts from `~/.ssh/config` (aliases with unusual characters are skipped) with an opt-in reachability
-  check and **Open in Windows Terminal**; AWS
-  profiles with the SSO login expiry, the Azure subscription and the gcloud account (all read-only); and a watch list of
+  check and **Open in Windows Terminal**; AWS profiles with the SSO login expiry, the Azure subscription and the gcloud account (all read-only); and a watch list of
   URLs and hosts checked for being down, an expiring or untrusted TLS certificate, or a status-page incident.
-  <img src="docs/images/dev-servers.png" alt="Servers tab" width="520">
 - **Usage** — Claude Code or Codex tokens for today, 7 and 30 days; an API-equivalent cost estimate for Claude and the
   current Codex rate-limit windows.
-  <img src="docs/images/dev-usage.png" alt="Usage tab" width="520">
 - **Log watcher** — the first new `ERROR` / `Exception` line of your log files in the pill.
 - **Kubernetes** — a red pill while kubectl's current context looks like production.
 - Settings in English and Ukrainian: theme, size, shape (notch or pill), monitor, apps to hide behind, the show/hide
@@ -71,6 +89,38 @@ only by features you turn on:
 
 Docker and Podman are reached over their local named pipe only. Agent hooks are never installed silently:
 **Settings → Options → Agents** shows exactly what will change and backs up the config file.
+
+## Download
+
+Grab the latest release (currently **1.1.0**) from the
+[Releases](https://github.com/Va1Geny/island/releases) page:
+
+- `Isle-v1.1.0-win-x64.zip` — small, needs the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0);
+- `Isle-v1.1.0-win-x64-selfcontained.zip` — larger, runs without any runtime.
+
+Unzip it to a permanent folder and run `Isle.exe`.
+
+## Build and run
+
+Requirements: Windows 10 (19041) or 11, x64, the [.NET 10 SDK](https://dotnet.microsoft.com/download). Optional:
+`rustc` 1.85+ with the MSVC target for the small `Isle.Launcher.exe`; without it the build script skips it.
+
+```powershell
+.\scripts\build.ps1                      # build, test, publish into dist\
+.\dist\Isle\Isle.exe                     # framework-dependent (needs the .NET 10 Desktop Runtime)
+.\dist\Isle-selfcontained\Isle.exe       # self-contained
+```
+
+Copy the folder somewhere permanent before enabling **Start with Windows**. For development `dotnet build` and
+`dotnet test` work from the repository root. `Isle.exe --snapshot <state|all> <out.png|dir> [--theme Dark|Light]
+[--lang en|uk] [--scale 1.5]` renders UI states to PNG.
+
+```
+src/Isle/          the app: Core, window, settings, tray, hotkeys, and Modules/ + Views/ for agents, media and the dev tools
+src/Isle.Hook/     helper the coding agents call to talk to Isle over a named pipe
+src/Isle.Launcher/ small Rust launcher that starts Isle.exe
+tests/Isle.Tests/  xUnit tests
+```
 
 ## Security
 
@@ -109,38 +159,6 @@ them as unverified until someone confirms them:
   nothing reliable to build on.
 - **Cursor CLI hooks** — hooks are unreliable on Windows.
 
-## Download
-
-Grab the latest release (currently **1.1.0**) from the
-[Releases](https://github.com/Va1Geny/island/releases) page:
-
-- `Isle-v1.1.0-win-x64.zip` — small, needs the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0);
-- `Isle-v1.1.0-win-x64-selfcontained.zip` — larger, runs without any runtime.
-
-Unzip it to a permanent folder and run `Isle.exe`.
-
-## Build and run
-
-Requirements: Windows 10 (19041) or 11, x64, the [.NET 10 SDK](https://dotnet.microsoft.com/download). Optional:
-`rustc` 1.85+ with the MSVC target for the small `Isle.Launcher.exe`; without it the build script skips it.
-
-```powershell
-.\scripts\build.ps1                      # build, test, publish into dist\
-.\dist\Isle\Isle.exe                     # framework-dependent (needs the .NET 10 Desktop Runtime)
-.\dist\Isle-selfcontained\Isle.exe       # self-contained
-```
-
-Copy the folder somewhere permanent before enabling **Start with Windows**. For development `dotnet build` and
-`dotnet test` work from the repository root. `Isle.exe --snapshot <state|all> <out.png|dir> [--theme Dark|Light]
-[--lang en|uk] [--scale 1.5]` renders UI states to PNG.
-
-```
-src/Isle/          the app: Core, window, settings, tray, hotkeys, and Modules/ + Views/ for agents, media and the dev tools
-src/Isle.Hook/     helper the coding agents call to talk to Isle over a named pipe
-src/Isle.Launcher/ small Rust launcher that starts Isle.exe
-tests/Isle.Tests/  xUnit tests
-```
-
 ## Releases and CI
 
 Every push to `main` and every pull request is built, tested and smoke-checked on GitHub Actions
@@ -152,6 +170,12 @@ and weekly; it skips itself while the repository is private.
 
 More in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`docs/DECISIONS.md`](docs/DECISIONS.md). New user-facing text
 goes into both the `en` and `uk` tables of `src/Isle/Core/Strings.Data.cs`; a test checks they match.
+
+## Contributing
+
+Bug reports, ideas and pull requests are welcome. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) for the build, test and
+snapshot workflow, and the [Code of Conduct](CODE_OF_CONDUCT.md). Notable changes are listed in
+[`CHANGELOG.md`](CHANGELOG.md).
 
 ## License
 
