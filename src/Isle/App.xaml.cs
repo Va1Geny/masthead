@@ -66,6 +66,7 @@ public partial class App : Application
             Host.Register("agents", () => new Modules.Agents.AgentsModule(Island!));
             Host.Register("media", () => new Modules.Media.MediaModule(Island!));
             Host.Register("sysmon", () => new Modules.SystemMonitor.SystemMonitorModule(Island!));
+            Host.Register("docker", () => new Modules.Docker.DockerModule(Island!));
             Host.Register("ports", () => new Modules.Ports.PortsModule(Island!));
             Host.Register("projects", () => new Modules.Projects.ProjectsModule(Island!));
             Host.Register("logs", () => new Modules.Logs.LogWatchModule(Island!));
