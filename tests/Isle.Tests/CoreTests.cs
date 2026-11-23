@@ -201,3 +201,25 @@ public class TrayIconTests
         Assert.Equal(255, px[(16 * 32 + 12) * 4 + 3]);        // centre alpha
     }
 }
+
+public class SmoothScrollTests
+{
+    [Fact]
+    public void Wheel_steps_accumulate_and_clamp()
+    {
+        Assert.Equal(30, Views.SmoothScroll.NextTarget(0, -120, 500));   // one notch down = 30 px
+        Assert.Equal(60, Views.SmoothScroll.NextTarget(30, -120, 500));  // a second notch builds on the target
+        Assert.Equal(0, Views.SmoothScroll.NextTarget(10, 120, 500));    // never above the top
+        Assert.Equal(500, Views.SmoothScroll.NextTarget(490, -120, 500)); // never past the end
+    }
+
+    [Fact]
+    public void Ease_glides_toward_target_without_overshoot()
+    {
+        double y = 0;
+        for (var i = 0; i < 6; i++) y = Views.SmoothScroll.Ease(y, 100, 1 / 60.0);
+        Assert.InRange(y, 30, 99);                                         // part-way after 100 ms
+        for (var i = 0; i < 60; i++) y = Views.SmoothScroll.Ease(y, 100, 1 / 60.0);
+        Assert.InRange(y, 99.5, 100);                                      // arrived after ~1 s, never past it
+    }
+}

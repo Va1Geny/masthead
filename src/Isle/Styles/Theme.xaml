@@ -384,6 +384,7 @@
     <Style TargetType="ScrollBar">
         <Setter Property="Width" Value="6" />
         <Setter Property="MinWidth" Value="6" />
+        <Setter Property="Margin" Value="0,2,0,12" /> <!-- the thumb stops short of the island's rounded bottom edge -->
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Template">
             <Setter.Value>
@@ -402,6 +403,7 @@
                 <Setter Property="MinWidth" Value="0" />
                 <Setter Property="Height" Value="6" />
                 <Setter Property="MinHeight" Value="6" />
+                <Setter Property="Margin" Value="0" />
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ScrollBar">

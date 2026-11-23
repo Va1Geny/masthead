@@ -22,6 +22,7 @@ public partial class App : Application
     {
         base.OnStartup(e);
         HookExceptionHandlers();
+        Views.SmoothScroll.Enable();
 
         if (e.Args.Length > 0 && e.Args[0] == "--snapshot")
         {
