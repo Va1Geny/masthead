@@ -1,3 +1,4 @@
+using System.Windows.Threading;
 using System.Windows;
 
 namespace Isle.Core;
@@ -74,8 +75,25 @@ public sealed class PillQueue
         Recompute();
     }
 
+    readonly Dictionary<string, DispatcherTimer> _hideTimers = [];
+
+    /// <summary>Shows the pill, then removes it after <paramref name="seconds"/> (one timer per id, restarted on a repeat).</summary>
+    public void Flash(PillItem item, double seconds)
+    {
+        Set(item);
+        if (!_hideTimers.TryGetValue(item.Id, out var t))
+        {
+            _hideTimers[item.Id] = t = new DispatcherTimer();
+            t.Tick += (_, _) => Remove(item.Id);
+        }
+        t.Interval = TimeSpan.FromSeconds(seconds);
+        t.Stop();
+        t.Start();
+    }
+
     public bool Remove(string id)
     {
+        if (_hideTimers.TryGetValue(id, out var t)) t.Stop();
         if (!_items.Remove(id)) return false;
         Recompute();
         return true;

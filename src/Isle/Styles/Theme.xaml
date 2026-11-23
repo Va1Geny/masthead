@@ -425,53 +425,6 @@
         <Setter Property="PanningMode" Value="VerticalOnly" />
     </Style>
 
-    <!-- list -->
-    <Style x:Key="FlatList" TargetType="ListBox">
-        <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="Foreground" Value="{DynamicResource FgBrush}" />
-        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
-        <Setter Property="ScrollViewer.CanContentScroll" Value="True" />
-        <Setter Property="VirtualizingPanel.IsVirtualizing" Value="True" />
-        <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling" />
-        <Setter Property="Focusable" Value="True" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ListBox">
-                    <ScrollViewer Focusable="False" Padding="0"><ItemsPresenter /></ScrollViewer>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-    <Style x:Key="FlatListItem" TargetType="ListBoxItem">
-        <Setter Property="Foreground" Value="{DynamicResource FgBrush}" />
-        <Setter Property="Padding" Value="8,5" />
-        <Setter Property="Margin" Value="0,0,0,2" />
-        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-        <Setter Property="Focusable" Value="True" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ListBoxItem">
-                    <Border x:Name="Bd" CornerRadius="8" Background="Transparent" Padding="{TemplateBinding Padding}">
-                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SurfaceBrush}" />
-                        </Trigger>
-                        <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-    <Style TargetType="ListBox" BasedOn="{StaticResource FlatList}" />
-    <Style TargetType="ListBoxItem" BasedOn="{StaticResource FlatListItem}" />
-
     <!-- tab button (icon; selected one is highlighted by the sliding indicator drawn by TabBar) -->
     <Style x:Key="TabButton" TargetType="RadioButton">
         <!-- icon-only: the tooltip doubles as the accessible name (screen readers, UI Automation) -->

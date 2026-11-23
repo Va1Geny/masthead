@@ -216,7 +216,7 @@ public class AgentTests
     }
 
     [Fact]
-    public void PermissionRequestWaitsUntilResolved()
+    public async Task PermissionRequestWaitsUntilResolved()
     {
         var (b, _, _) = NewBook();
         b.Apply(Msg(Input("UserPromptSubmit")));
@@ -230,7 +230,7 @@ public class AgentTests
 
         Assert.True(b.Resolve(r, HookProtocol.Reply("allow")));
         Assert.True(r.Reply.Task.IsCompleted);
-        Assert.Contains("allow", r.Reply.Task.Result);
+        Assert.Contains("allow", await r.Reply.Task);
         Assert.Equal(AgentState.Working, b.Sessions[0].State);
         Assert.False(b.Resolve(r, HookProtocol.Reply("deny"))); // only once
     }
@@ -261,15 +261,15 @@ public class AgentTests
     }
 
     [Fact]
-    public void CancelAndSessionEndReleaseHooks()
+    public async Task CancelAndSessionEndReleaseHooks()
     {
         var (b, _, _) = NewBook();
         var r1 = b.Apply(Msg(Input("PermissionRequest", "Bash"), wait: true))!;
         Assert.True(b.Cancel(r1));
-        Assert.Contains("none", r1.Reply.Task.Result);
+        Assert.Contains("none", await r1.Reply.Task);
         var r2 = b.Apply(Msg(Input("PermissionRequest", "Edit"), wait: true))!;
         b.Apply(Msg(Input("SessionEnd")));
-        Assert.Contains("none", r2.Reply.Task.Result);
+        Assert.Contains("none", await r2.Reply.Task);
         Assert.Equal(0, b.Count);
     }
 

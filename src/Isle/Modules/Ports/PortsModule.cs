@@ -15,7 +15,7 @@ public sealed class PortsModule(IslandWindow island) : IModule, IDisposable
     public const string TabId = "ports";
     const string PillId = "ports.new";
 
-    DispatcherTimer? _watch, _pillTimer;
+    DispatcherTimer? _watch;
     List<Listener>? _known;
 
     public string Id => "ports";
@@ -44,20 +44,14 @@ public sealed class PortsModule(IslandWindow island) : IModule, IDisposable
 
     void Announce(Listener l)
     {
-        island.Pill.Set(new PillItem
+        island.Pill.Flash(new PillItem
         {
             Id = PillId, Priority = PillPriority.Transient, Width = 220, Peek = true,
             View = () => PillView(l),
             Click = PortFilter.DesktopApp(l.Process) is null ? () => ProcessOps.Open(PortsView.Url(l.Port)) : null,
-        });
-        _pillTimer ??= new DispatcherTimer { Interval = TimeSpan.FromSeconds(6) };
-        _pillTimer.Tick -= HidePill;
-        _pillTimer.Tick += HidePill;
-        _pillTimer.Stop();
-        _pillTimer.Start();
+        }, 6);
     }
 
-    void HidePill(object? sender, EventArgs e) { _pillTimer?.Stop(); island.Pill.Remove(PillId); }
 
     internal static FrameworkElement PillView(Listener l)
     {
@@ -75,7 +69,6 @@ public sealed class PortsModule(IslandWindow island) : IModule, IDisposable
     {
         _watch?.Stop();
         _watch = null;
-        _pillTimer?.Stop();
         island.Pill.Remove(PillId);
         island.RemoveTab(TabId);
         _known = null;
