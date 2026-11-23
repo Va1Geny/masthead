@@ -34,7 +34,7 @@ public sealed class DockerModule(IslandWindow island) : IModule, IDisposable
         if (choice is not ("docker" or "podman")) return; // none or never asked: stays off
         Engine = choice;
         Api = new DockerApi(DockerApi.PipeFor(choice));
-        island.AddTab(new TabInfo(TabId, "tab.docker", "Icon.Server", () => new DockerView(this, island), 97));
+        island.AddTab(new TabInfo(TabId, "tab.docker", "Icon.Docker", () => new DockerView(this, island), 97));
         _cts = new CancellationTokenSource();
         _ = Task.Run(() => Loop(Api, _cts.Token));
     }
@@ -89,23 +89,24 @@ public sealed class DockerModule(IslandWindow island) : IModule, IDisposable
 
     void SetUp(bool up, bool showDown = false)
     {
+        var was = Up;
         Up = up;
         if (up) island.Pill.Remove(DownId);
-        else if (showDown) island.Pill.Set(DownItem(Engine));
+        else if (showDown && was) island.Pill.Set(DownItem(Engine));
     }
 
     internal static PillItem DownItem(string engine) => new()
     {
         Id = DownId, Priority = PillPriority.MicCamera - 1, TabId = TabId,
-        View = () => new IndicatorPill("Icon.Server", Strings.T("docker.down", Name(engine)), "", "WarnBrush"),
-        Compact = () => new IndicatorPill("Icon.Server", "", "", "WarnBrush", center: true), CompactWidth = 40, Width = 190,
+        View = () => new IndicatorPill("Icon.Docker", Strings.T("docker.down", Name(engine)), "", "WarnBrush"),
+        Compact = () => new IndicatorPill("Icon.Docker", "", "", "WarnBrush", center: true), CompactWidth = 40, Width = 190,
     };
 
     internal static PillItem CrashItem(string name) => new()
     {
         Id = CrashId, Priority = PillPriority.Transient, TabId = TabId, Peek = true,
         Width = IndicatorPill.MessageWidth(Strings.T("docker.crash", name)) + 30,
-        View = () => new IndicatorPill("Icon.Server", Strings.T("docker.crash", name), "", "DangerBrush"),
+        View = () => new IndicatorPill("Icon.Docker", Strings.T("docker.crash", name), "", "DangerBrush"),
     };
 
     static string Name(string engine) => engine == "podman" ? "Podman" : "Docker";
@@ -167,7 +168,7 @@ static class DockerSnapshots
         var m = new DockerModule(w) { Boxes = boxes, Up = up };
         var view = new DockerView(m, w);
         view.Render(new DiskUsage(4_200_000_000, 12_000_000, 800_000_000, 1_100_000_000));
-        w.AddTab(new TabInfo(DockerModule.TabId, "tab.docker", "Icon.Server", () => view, 97));
+        w.AddTab(new TabInfo(DockerModule.TabId, "tab.docker", "Icon.Docker", () => view, 97));
         w.Expand(DockerModule.TabId);
         return view;
     }

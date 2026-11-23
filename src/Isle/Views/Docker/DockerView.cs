@@ -15,6 +15,7 @@ public sealed class DockerView : Grid, ITabView
     readonly StackPanel _rows = new();
     readonly TextBlock _disk = Ui.Dim("");
     readonly Border _overlay = new() { Visibility = Visibility.Collapsed };
+    readonly Button _prune;
     DiskUsage? _df;
     string? _confirm; // "stop:<id>" or "down:<project>": the second click does it
 
@@ -27,7 +28,7 @@ public sealed class DockerView : Grid, ITabView
         Children.Add(new ScrollViewer { Content = _rows, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
 
         var foot = new DockPanel { Margin = new Thickness(4, 4, 0, 0) };
-        var prune = Ui.IconAction("Icon.Trash", "docker.prune", () => ShowPrune(_df), "docker prune", "FgBrush");
+        var prune = _prune = Ui.IconAction("Icon.Trash", "docker.prune", () => ShowPrune(_df), "docker prune", "FgBrush");
         DockPanel.SetDock(prune, Dock.Right);
         foot.Children.Add(prune);
         _disk.VerticalAlignment = VerticalAlignment.Center;
@@ -64,7 +65,9 @@ public sealed class DockerView : Grid, ITabView
 
     internal void Render(DiskUsage? df)
     {
+        if (!_m.Up) df = null;
         _df = df;
+        _prune.Visibility = _m.Up ? Visibility.Visible : Visibility.Collapsed;
         _disk.Text = df is null ? "" : Strings.T("docker.disk", DockerParse.Size(df.Images), DockerParse.Size(df.Volumes), DockerParse.Size(df.BuildCache));
         _rows.Children.Clear();
         if (!_m.Up || _m.Boxes.Count == 0)
