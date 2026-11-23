@@ -15,6 +15,7 @@ namespace Isle.Home;
 public static class Pack
 {
     static ToolsModule? _tools;
+    static Views.IdleClock? _clock;
 
     public static void Register()
     {
@@ -33,6 +34,13 @@ public static class Pack
         host.Register("ai", () => new AiModule(App.Island!));
         host.Register("voice", () => new Modules.Voice.VoiceModule(App.Island!));
         host.Register("characters", () => new CharactersModule(App.Island!));
+        Views.HomeSettings.Register();
+        if (App.Island is { } island) // the idle clock: shown while the "Clock in the idle pill" setting is on
+        {
+            void Clock() => island.IdleView.CenterSlot = Settings.Current.ShowClock ? _clock ??= new Views.IdleClock() : null;
+            Clock();
+            Settings.Changed += _ => Clock();
+        }
         SettingsView.AddModules("agents", "lyrics", "timers", "notes", "control", "live", "clipboard", "shelf", "commands", "tools", "weather", "ai", "voice");
         SettingsView.AddModules("tray", "characters");
         SettingsView.PackOptions.Add(Options);
@@ -44,6 +52,7 @@ public static class Pack
         Modules.Lyrics.MusicTab.Register();
 
         var states = IslandWindow.SnapshotStates;
+        states["idle-clock"] = w => w.IdleView.CenterSlot = new Views.IdleClock();
         Modules.Lyrics.MusicTab.RegisterSnapshots(states);
         Modules.Timers.TimersSnapshots.Register(states);
         Modules.Notes.NotesSnapshots.Register(states);

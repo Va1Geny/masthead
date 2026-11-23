@@ -14,7 +14,6 @@ public partial class IslandWindow
     internal static readonly Dictionary<string, Action<IslandWindow>> SnapshotStates = new()
     {
         ["idle"] = _ => { },
-        ["idle-clock"] = w => { Settings.Current.ShowClock = true; w.UpdateIdlePill(); },
         ["expanded-empty"] = w => w.Expand(),
         ["expanded"] = w => { w.AddDemoTabs(); w.Expand("timers"); },
         ["expanded-toast"] = w => { w.AddDemoTabs(); w.Expand("music"); w.ShowToast(Strings.T("snap.toast"), Strings.T("common.undo")); },
@@ -52,8 +51,8 @@ public partial class IslandWindow
         {
             if (args.Length < 3) { Console.Error.WriteLine("usage: --snapshot <state|all> <out.png|dir> [--theme Dark|Light] [--lang en|uk] [--scale s]"); return 2; }
             Modules.Agents.AgentSnapshots.Register(SnapshotStates);
+            Packs.Load(); // adds the packs' states and settings sections
             Views.SettingsPanel.SettingsSnapshots.Register(SnapshotStates);
-            Packs.Load(); // adds the packs' states
             var state = args[1];
             var output = args[2];
             string? theme = Arg(args, "--theme"), lang = Arg(args, "--lang");

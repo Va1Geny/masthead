@@ -23,15 +23,25 @@ public sealed record SettingsActions(
 
 /// <summary>
 /// Settings: a full-panel overlay with a section list on the left and a scrolling page on the right.
-/// Sections: general (appearance + behaviour), modules (on/off), options (per-module), hotkeys (rebind), about.
+/// Sections: general (appearance + behaviour), options (per-module), about; the Home pack adds modules (on/off) and hotkeys (rebind).
 /// Simple changes are written and saved here; module restarts and links go through <see cref="SettingsActions"/>.
 /// </summary>
 public sealed class SettingsView : Grid, ITabView
 {
-    public static string[] Sections => DevPackage ? ["general", "options", "about"] : ["general", "modules", "options", "hotkeys", "about"];
+    /// <summary>Section ids in the order shown; packs add theirs with <see cref="AddSection"/>.</summary>
+    internal static readonly List<string> Sections = ["general", "options", "about"];
 
-    /// <summary>Dev package (shell + Music + Dev): the Home pack's "timers" module is absent while Dev's "sysmon" is there. Settings are trimmed to match.</summary>
-    internal static bool DevPackage => ModuleIds.Contains("sysmon") && !ModuleIds.Contains("timers");
+    static readonly Dictionary<string, Action<SettingsView>> PackPages = [];
+
+    /// <summary>Extra rows packs add to the General page: at the end of Appearance, and after "hide in fullscreen" in Behaviour.</summary>
+    internal static readonly List<Action<SettingsView>> PackAppearance = [], PackBehaviour = [];
+
+    /// <summary>Adds a section before <paramref name="before"/>; <paramref name="page"/> fills its page.</summary>
+    internal static void AddSection(string id, string before, Action<SettingsView> page)
+    {
+        Sections.Insert(Sections.IndexOf(before), id);
+        PackPages[id] = page;
+    }
 
     /// <summary>Module ids in the order shown (tray last: it is the way back when the island is hidden). Packs add theirs with <see cref="AddModules"/>.</summary>
     internal static readonly List<string> ModuleIds = ["agents", "tray"];
@@ -99,10 +109,12 @@ public sealed class SettingsView : Grid, ITabView
 
     public string Section => _section;
     internal SettingsActions Actions => _a;
+    internal string? HotkeyNote => _hotkeyNote;
+    internal StackPanel Page => _page;
 
     public void ShowSection(string section)
     {
-        _section = Array.IndexOf(Sections, section) >= 0 ? section : "general";
+        _section = Sections.Contains(section) ? section : "general";
         _hotkeyNote = null;
         Render();
         _scroll.ScrollToTop();
@@ -140,10 +152,9 @@ public sealed class SettingsView : Grid, ITabView
         switch (_section)
         {
             case "general": General(); break;
-            case "modules": ModulesPage(); break;
             case "options": OptionsPage(); break;
-            case "hotkeys": HotkeysPage(); break;
-            default: About(); break;
+            case "about": About(); break;
+            default: PackPages[_section](this); break;
         }
         _scroll.UpdateLayout();
         _scroll.ScrollToVerticalOffset(offset);
@@ -170,15 +181,11 @@ public sealed class SettingsView : Grid, ITabView
                 v => v == "-1" ? "set.monitor.primary" : null, v => (int.Parse(v, CultureInfo.InvariantCulture) + 1).ToString(CultureInfo.InvariantCulture)));
         }
         Row("set.shape", Choice(["notch", "pill"], S.Opt("shape", "notch") == "pill" ? "pill" : "notch", v => { S.SetOpt("shape", v); Save("Options"); }, v => "set.shape." + v));
-        if (!DevPackage) Row("set.clock", Switch(S.ShowClock, on => { S.ShowClock = on; Save("ShowClock"); }));
+        foreach (var add in PackAppearance) add(this);
 
         Group("set.behaviour");
         Row("set.fullscreen", Switch(S.HideInFullscreen, on => { S.HideInFullscreen = on; Save("HideInFullscreen"); }), "set.fullscreen.hint");
-        if (!DevPackage)
-        {
-            Row("set.edge", Switch(S.AutoHideEdge, on => { S.AutoHideEdge = on; Save("AutoHideEdge"); }), "set.edge.hint");
-            Row("set.clickThrough", Switch(S.ClickThrough, on => { S.ClickThrough = on; Save("ClickThrough"); }), "set.clickThrough.hint");
-        }
+        foreach (var add in PackBehaviour) add(this);
         Row("set.autostart", Switch(SafeAutostart(), on => { try { Autostart.Set(on); } catch (Exception ex) { Logger.Error("autostart", ex); } Render(); }));
         Row("set.excluded", TextField(string.Join(", ", S.ExcludedApps), v =>
         {
@@ -200,19 +207,8 @@ public sealed class SettingsView : Grid, ITabView
         }));
         _page.Children.Add(openApps);
         Row("set.excluded.overlap", Switch(S.ExcludedAppsOnlyOnOverlap, on => { S.ExcludedAppsOnlyOnOverlap = on; Save("ExcludedAppsOnlyOnOverlap"); }));
-        if (DevPackage) foreach (var h in Hotkeys().Where(h => h.Id == "toggle")) HotkeyRow(h);
-    }
-
-    void ModulesPage()
-    {
-        Hint("set.modules.hint");
-        foreach (var id in ModuleIds)
-        {
-            var on = S.IsModuleEnabled(id);
-            var failed = _a.StateOf(id) == ModuleState.Failed;
-            var sw = Switch(on, v => { S.Modules[id] = v; S.Save("Modules"); _a.SyncModules(); Render(); });
-            Row("mod." + id, sw, failed ? "set.failed" : "mod." + id + ".hint", hintBrush: failed ? "DangerBrush" : null);
-        }
+        // without a Hotkeys page (no Home pack) the toggle hotkey is the only one, so it lives here
+        if (!Sections.Contains("hotkeys")) foreach (var h in Hotkeys().Where(h => h.Id == "toggle")) HotkeyRow(h);
     }
 
     void OptionsPage()
@@ -245,26 +241,13 @@ public sealed class SettingsView : Grid, ITabView
         Row("set.hooks", Link("", "set.manage", () => _a.Open("hooks")), "set.hooks.hint");
     }
 
-    void HotkeysPage()
-    {
-        Hint("set.hotkeys.hint");
-        if (_hotkeyNote is not null)
-        {
-            var n = Text(_hotkeyNote, dim: false);
-            n.SetResourceReference(TextBlock.ForegroundProperty, "WarnBrush");
-            n.Margin = new Thickness(0, 0, 0, 6);
-            _page.Children.Add(n);
-        }
-        foreach (var h in Hotkeys()) HotkeyRow(h);
-    }
-
-    IReadOnlyList<HotkeyInfo> Hotkeys()
+    internal IReadOnlyList<HotkeyInfo> Hotkeys()
     {
         try { return _a.Hotkeys(); }
         catch (Exception ex) { Logger.Error("hotkey list", ex); return []; }
     }
 
-    void HotkeyRow(HotkeyInfo h)
+    internal void HotkeyRow(HotkeyInfo h)
     {
         var cell = new StackPanel { Orientation = Orientation.Horizontal };
         if (!string.Equals(h.Gesture, h.DefaultGesture, StringComparison.OrdinalIgnoreCase))
@@ -347,7 +330,7 @@ public sealed class SettingsView : Grid, ITabView
         _page.Children.Add(t);
     }
 
-    void Hint(string key)
+    internal void Hint(string key)
     {
         var t = Text(Strings.T(key), dim: true);
         t.FontSize = 11.5;
@@ -398,7 +381,7 @@ public sealed class SettingsView : Grid, ITabView
             AssociateLabel(child, label);
     }
 
-    static TextBlock Text(string text, bool dim)
+    internal static TextBlock Text(string text, bool dim)
     {
         var t = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap };
         t.SetResourceReference(StyleProperty, dim ? "TextDim" : "Text");

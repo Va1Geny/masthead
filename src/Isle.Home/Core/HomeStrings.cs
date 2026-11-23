@@ -428,6 +428,19 @@ static class HomeStrings
         ["set.voiceLang.uk"] = "UK",
         ["set.voiceLang.nl"] = "NL",
         ["set.gallery"] = "Character",
+        ["set.modules"] = "Modules",
+        ["set.hotkeys"] = "Hotkeys",
+        ["set.clock"] = "Clock in the idle pill",
+        ["set.edge"] = "Tuck away at the screen edge",
+        ["set.edge.hint"] = "Comes back when the cursor touches the top edge",
+        ["set.clickThrough"] = "Click-through",
+        ["set.clickThrough.hint"] = "The island only shows information; clicks reach the window below",
+        ["set.modules.hint"] = "A module that is off does not run at all and its tab is hidden.",
+        ["set.failed"] = "Could not start — see log.txt",
+        ["mod.agents.hint"] = "Claude Code and Codex status and approvals",
+        ["mod.tray"] = "Tray icon",
+        ["mod.tray.hint"] = "Show/hide, settings and quit in the notification area",
+        ["set.hotkeys.hint"] = "Click a shortcut and press the new keys. Backspace turns it off.",
     };
 
     internal static readonly Dictionary<string, string> Uk = new()
@@ -855,5 +868,18 @@ static class HomeStrings
         ["set.voiceLang.uk"] = "UK",
         ["set.voiceLang.nl"] = "NL",
         ["set.gallery"] = "Персонаж",
+        ["set.modules"] = "Модулі",
+        ["set.hotkeys"] = "Гарячі клавіші",
+        ["set.clock"] = "Годинник у пілюлі",
+        ["set.edge"] = "Ховати за край екрана",
+        ["set.edge.hint"] = "Повертається, коли курсор торкається верхнього краю",
+        ["set.clickThrough"] = "Пропускати кліки",
+        ["set.clickThrough.hint"] = "Острівець лише показує інформацію; кліки йдуть у вікно під ним",
+        ["set.modules.hint"] = "Вимкнений модуль зовсім не працює, а його вкладку приховано.",
+        ["set.failed"] = "Не вдалося запустити — див. log.txt",
+        ["mod.agents.hint"] = "Стан і дозволи Claude Code та Codex",
+        ["mod.tray"] = "Значок у треї",
+        ["mod.tray.hint"] = "Показати/сховати, налаштування й вихід в області сповіщень",
+        ["set.hotkeys.hint"] = "Клацніть поєднання й натисніть нові клавіші. Backspace вимикає його.",
     };
 }
