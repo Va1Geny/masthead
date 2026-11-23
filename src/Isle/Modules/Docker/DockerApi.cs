@@ -139,9 +139,12 @@ public static class DockerParse
 /// <summary>
 /// Incremental form of <see cref="DockerParse.Logs"/> for a followed stream: bytes arrive in arbitrary chunks (headers, payloads and
 /// multi-byte characters can be split anywhere) and complete lines come out. Framed (8-byte header) or TTY (plain) is decided from the first bytes.
+/// Memory stays bounded whatever the container writes: lines longer than <see cref="MaxLine"/> are split, and a frame length over
+/// <see cref="MaxFrame"/> means the stream was TTY text that only began like a header.
 /// </summary>
 public sealed class LogDemux
 {
+    public const int MaxLine = 4096, MaxFrame = 1 << 20;
     readonly List<byte> _pending = [];
     readonly Dictionary<int, (Decoder Dec, StringBuilder Line)> _streams = [];
     bool? _framed;
@@ -157,18 +160,21 @@ public sealed class LogDemux
             else if (_pending.Count < 4) return lines;
             else _framed = _pending[1] == 0 && _pending[2] == 0 && _pending[3] == 0;
         }
+        while (_framed == true && _pending.Count >= 8)
+        {
+            var len = (_pending[4] << 24) | (_pending[5] << 16) | (_pending[6] << 8) | _pending[7];
+            if (len is < 0 or > MaxFrame) _framed = false; // not frames after all: pass everything through as text
+            else if (_pending.Count < 8 + len) break; // wait for the rest of the frame
+            else
+            {
+                Text(_pending[0], _pending.GetRange(8, len).ToArray(), lines);
+                _pending.RemoveRange(0, 8 + len);
+            }
+        }
         if (_framed == false)
         {
             Text(0, _pending.ToArray(), lines);
             _pending.Clear();
-            return lines;
-        }
-        while (_pending.Count >= 8)
-        {
-            var len = (_pending[4] << 24) | (_pending[5] << 16) | (_pending[6] << 8) | _pending[7];
-            if (len < 0 || _pending.Count < 8 + len) break; // wait for the rest of the frame
-            Text(_pending[0], _pending.GetRange(8, len).ToArray(), lines);
-            _pending.RemoveRange(0, 8 + len);
         }
         return lines;
     }
@@ -188,6 +194,7 @@ public sealed class LogDemux
         s.Dec.GetChars(bytes, 0, bytes.Length, chars, 0);
         foreach (var c in chars)
         {
+            if (s.Line.Length >= MaxLine) { lines.Add(s.Line.ToString()); s.Line.Clear(); }
             if (c != '\n') { s.Line.Append(c); continue; }
             if (s.Line.Length > 0 && s.Line[^1] == '\r') s.Line.Length--;
             lines.Add(s.Line.ToString());

@@ -39,6 +39,21 @@ public class SecurityTests
     }
 
     [Fact]
+    public void Log_follow_memory_stays_bounded_whatever_the_container_writes()
+    {
+        // one endless line is cut at MaxLine
+        var d = new LogDemux();
+        var lines = d.Push(Encoding.UTF8.GetBytes(new string('x', LogDemux.MaxLine * 2 + 10)));
+        Assert.Equal([LogDemux.MaxLine, LogDemux.MaxLine], lines.Select(l => l.Length));
+        Assert.Equal(10, d.Flush().Single().Length);
+
+        // TTY output that starts like a frame header with a huge length is passed through, not buffered
+        var tty = new LogDemux();
+        Assert.Empty(tty.Push([1, 0, 0, 0, 0x7f, 0xff, 0xff, 0xff]));
+        Assert.EndsWith("more", tty.Push("more\n"u8).Single());
+    }
+
+    [Fact]
     public async Task Hook_pipe_drops_clients_from_other_machines()
     {
         var name = "Isle.Agents.test." + Guid.NewGuid().ToString("N");
