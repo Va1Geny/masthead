@@ -28,7 +28,7 @@ public sealed class MediaModule(IslandWindow island) : IModule, IDisposable
     {
         _session = new MediaSession(island.Dispatcher);
         _session.Changed += OnChanged;
-        SetIdleWidth(MiniPlayerPill.PillWidth * 0.8); // idle notch 20% narrower than the mini player
+        SetIdleWidth(200); // idle notch narrower than the mini player (kept at 200 when the pill grew for prev/next)
         _ = StartSessionAsync(_session);
     }
 

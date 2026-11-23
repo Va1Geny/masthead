@@ -26,5 +26,7 @@
     <!-- transport (filled) -->
     <Geometry x:Key="Icon.Play">M8 5 L19 12 L8 19 Z</Geometry>
     <Geometry x:Key="Icon.Pause">M7 5 H10.5 V19 H7 Z M13.5 5 H17 V19 H13.5 Z</Geometry>
+    <Geometry x:Key="Icon.Next">M5.5 5 L15 12 L5.5 19 Z M15.5 5 H18.5 V19 H15.5 Z</Geometry>
+    <Geometry x:Key="Icon.Previous">M18.5 5 L9 12 L18.5 19 Z M5.5 5 H8.5 V19 H5.5 Z</Geometry>
     <Geometry x:Key="Icon.Stop">M6.5 6.5 H17.5 V17.5 H6.5 Z</Geometry>
 </ResourceDictionary>

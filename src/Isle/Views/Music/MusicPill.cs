@@ -9,27 +9,34 @@ using MediaState = Isle.Modules.Media.MediaState;
 namespace Isle.Views.Music;
 
 /// <summary>
-/// The mini player: art, "title — artist" and a play/pause button. Hovering the button
+/// The mini player: art, "title — artist" and previous / play-pause / next buttons. Hovering the buttons
 /// does not open the island (see IslandWindow.IsOverButton); the rest of the pill opens it as usual.
 /// </summary>
 public sealed class MiniPlayerPill : Grid
 {
-    public const double PillWidth = 250;
+    public const double PillWidth = 300;
 
     readonly ArtImage _art = new(22, 6) { HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(7, 0, 0, 0) };
-    readonly TextBlock _text = new() { FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(38, 0, 42, 0) };
+    readonly TextBlock _text = new() { FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(38, 0, 96, 0) };
     readonly Views.Icon _icon = Ui.MakeIcon("Icon.Pause", 13, "FgBrush", filled: true);
 
     public MiniPlayerPill(IMediaSource media)
     {
-        var play = Ui.IconButton(_icon, 28, media.PlayPause, "music play/pause");
-        play.HorizontalAlignment = HorizontalAlignment.Right;
-        play.Margin = new Thickness(0, 0, 8, 0);
-        play.ToolTip = Strings.T("music.playPause");
-        AutomationProperties.SetName(play, Strings.T("music.playPause"));
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 0, 6, 0) };
+        buttons.Children.Add(Transport(Ui.MakeIcon("Icon.Previous", 11, "FgBrush", filled: true), media.Previous, "music.previous", "music previous"));
+        buttons.Children.Add(Transport(_icon, media.PlayPause, "music.playPause", "music play/pause"));
+        buttons.Children.Add(Transport(Ui.MakeIcon("Icon.Next", 11, "FgBrush", filled: true), media.Next, "music.next", "music next"));
         Children.Add(_art);
         Children.Add(_text);
-        Children.Add(play);
+        Children.Add(buttons);
+    }
+
+    static Button Transport(Views.Icon icon, Action click, string tipKey, string area)
+    {
+        var b = Ui.IconButton(icon, 28, click, area);
+        b.ToolTip = Strings.T(tipKey);
+        AutomationProperties.SetName(b, Strings.T(tipKey));
+        return b;
     }
 
     public void Update(MediaState s)
