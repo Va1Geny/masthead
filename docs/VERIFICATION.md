@@ -29,7 +29,7 @@ Measured the arranged WPF controls at 80% in isolated English and Ukrainian snap
 | System monitor: CPU, cores, memory, GPU, VRAM, network, disk, top processes | auto-test (math + real sampler) + snapshot + live render on this machine | ok; temperatures not included (need a driver) |
 | Overload pill (CPU or memory ≥ 90% for 30 s) | auto-test (`SustainedAlert`) + snapshot | ok |
 | Ports: listeners, merge, filters, command `port N` | auto-test + live (real listeners: Herd, nginx, php, node) | ok |
-| Docker containers / WSL distributions | auto-test (output parsers) | manual-needed — not installed here: start a container, open Ports, it is listed with Stop |
+| WSL distributions in Ports (containers moved to the Docker tab in 1.1) | auto-test (output parser) | ok |
 | Projects: git status, remotes, Actions runs, review count | auto-test (parsers) + live (`git status` of this repository) | ok; GitHub API calls manual-needed: add a repository with Actions and watch a run finish |
 | Build watcher (command lines, exit code, duration) | auto-test (classifier + a real child process with exit code 3) + live (`dotnet build` detected) | ok |
 | Log watcher (new lines only, rotation, pattern) | auto-test | ok |
@@ -73,3 +73,27 @@ Methods: `auto-test` (xUnit), `snapshot` (PNG looked at), `live` (ran the real a
 | Ukrainian translation review (all 650+ strings; consistent "папка", typographic apostrophes) | auto-test (key parity) + snapshot sheets (104 states) | ok |
 | All UI states in both themes and both languages | snapshot (`--snapshot all`: 104 states × Dark/Light × EN/UK = 416 PNGs, inspected as contact sheets) | ok (switches that start "on" render "off" in snapshots only — template animation; live they are correct) |
 | `build.ps1` → `dist\Isle\Isle.exe` (framework-dependent, 69 MB) and `dist\Isle-selfcontained\Isle.exe` | live | both start and show the pill; Whisper `--transcribe` works from both (self-contained needed loose native DLLs — fixed) |
+
+## Phase 2 (1.1)
+
+| Feature | Method | Result |
+|---|---|---|
+| Docker tab: engine pipe, events, compose grouping, start/stop/restart, compose up/down | auto-test (fake engine over a real pipe) + live (Docker Desktop, throwaway containers) | ok |
+| Docker logs live follow, framed/TTY demux | auto-test (partial frames) + live (throwaway container, backlog plus new lines) | ok |
+| Docker prune | auto-test + live (confirm opened and cancelled only) | ok; never run against real data |
+| Docker crash-loop and engine-down pills (down pill hides after 7 s) | auto-test + live (engine down → up → down) | ok |
+| Podman pipe | auto-test (pipe choice) | manual-needed: no Podman machine here |
+| Servers: ssh config (Include, Host/Match), opt-in TCP reachability | auto-test (fixtures) + live (real ssh config, TCP only) | ok |
+| Servers watch list: down, TLS expiry, untrusted certificate, status page | auto-test + live (expired / self-signed / wrong-host badssl.com, example.com) | ok |
+| Servers: Open in Windows Terminal | — | manual-needed |
+| AWS SSO expiry, Azure, gcloud | auto-test (fixtures) | ok; no SSO profile or Azure/gcloud files on this machine |
+| Projects: GitHub CI via `gh`, review requests via `gh` | auto-test (recorded JSON) + live (read-only `gh` calls) | ok |
+| Projects: GitLab MRs and pipelines | auto-test (recorded API responses) | manual-needed: no GitLab account here |
+| Projects: fetch, fast-forward-only pull | auto-test + live (throwaway repos: up to date, fast-forward, diverged) | ok |
+| Build-time history per project (command line or process working folder) | auto-test (path matching) + live (working folder read of a real process) | ok |
+| Agents: Codex usage and rate limits | auto-test (rollout fixtures) | ok |
+| Agents: Gemini CLI hooks, removal of the other agents' hooks on switch | auto-test | Gemini manual-needed: Gemini CLI not installed |
+| First-run setup, "Run setup again", new modules started without a restart | live | ok |
+| Mini player previous / next | snapshot | ok |
+| Eased wheel scrolling, scrollbar inset | auto-test (step and easing math) + live | ok |
+| Clipped UI (overlay buttons, long Ukrainian lines, Servers bottom inset) | snapshot (dark, en/uk) | ok |

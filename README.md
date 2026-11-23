@@ -8,6 +8,7 @@ A small notch that hangs from the top of the screen, shows what your machine and
 [![Windows 10/11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)](#build-and-run)
 [![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![CI](https://github.com/Va1Geny/island/actions/workflows/ci.yml/badge.svg)](https://github.com/Va1Geny/island/actions/workflows/ci.yml)
 
 </div>
 
@@ -18,29 +19,74 @@ developer features below, and nothing else.
 
 ## Features
 
+- **First-run setup** — pick your coding agent (Claude Code, Codex, Gemini CLI), git host (GitHub, GitLab) and
+  container engine (Docker, Podman), then the tabs and alerts you want. Tools found on the PC are marked; run it again
+  any time from **Settings → Options**.
 - **Music** — follows any app that reports to Windows media controls (Spotify, browsers, VLC…): a mini player in the
-  pill with album art, title, artist and play/pause, a banner on track change, and an accent colour taken from the art.
+  pill with album art, title, artist and previous / play-pause / next, a banner on track change, and an accent colour
+  taken from the art.
+  <img src="docs/images/pill-music.png" alt="Music mini player" width="340">
 - **Agents** — cards for Claude Code and Codex sessions: permission requests you can answer from the island, subagent
-  progress, the latest file edit, and a shortcut back to the session's terminal tab.
+  progress, the latest file edit, and a shortcut back to the session's terminal tab. Hooks for Claude Code, Codex and
+  Gemini CLI; switching agents removes Isle's hooks from the others.
   <img src="docs/images/agents.png" alt="Agents tab" width="520">
 - **System** — CPU (with the busiest core), memory, GPU load and VRAM, and network, each with a one-minute sparkline,
   plus the busiest processes with **End task**; a pill when CPU or memory stays above 90% for 30 seconds.
   <img src="docs/images/dev-system.png" alt="System tab" width="520">
-- **Ports** — what your dev servers and databases listen on, with **Open in browser** and **End**; Docker containers
-  and WSL distributions too. A pill tells you when a new server starts.
+- **Ports** — what your dev servers and databases listen on, with **Open in browser** and **End**, plus your WSL
+  distributions. A pill tells you when a new server starts.
   <img src="docs/images/dev-ports.png" alt="Ports tab" width="520">
-- **Projects** — branch, changes and ahead/behind of watched repositories with the latest GitHub Actions run, and pills
-  when CI or a local build or test run (`dotnet`, `npm`, `cargo`, `go`, `pytest`, `make`…) finishes.
+- **Docker** — containers grouped by compose project over the Docker (or Podman) engine pipe, updated live from engine
+  events: start / stop / restart, live-following logs, compose up / restart / down, friendly labels for local databases,
+  disk usage and a cleanup that asks first (volumes are never pruned). Pills when a container keeps crashing or the
+  engine stops.
+  <img src="docs/images/dev-docker.png" alt="Docker tab" width="520">
+- **Projects** — branch, changes and ahead/behind of watched repositories with the latest CI run (GitHub Actions via
+  `gh`, GitLab pipelines), **Fetch** and fast-forward-only **Pull**, pull requests waiting for your review, GitLab merge
+  requests, and a build-time sparkline per project. Pills when CI or a local build or test run (`dotnet`, `npm`,
+  `cargo`, `go`, `pytest`, `make`…) finishes.
   <img src="docs/images/dev-projects.png" alt="Projects tab" width="520">
+- **Servers** — hosts from `~/.ssh/config` with an opt-in reachability check and **Open in Windows Terminal**; AWS
+  profiles with the SSO login expiry, the Azure subscription and the gcloud account (all read-only); and a watch list of
+  URLs and hosts checked for being down, an expiring or untrusted TLS certificate, or a status-page incident.
+  <img src="docs/images/dev-servers.png" alt="Servers tab" width="520">
+- **Usage** — Claude Code or Codex tokens for today, 7 and 30 days; an API-equivalent cost estimate for Claude and the
+  current Codex rate-limit windows.
+  <img src="docs/images/dev-usage.png" alt="Usage tab" width="520">
 - **Log watcher** — the first new `ERROR` / `Exception` line of your log files in the pill.
 - **Kubernetes** — a red pill while kubectl's current context looks like production.
-- **Usage** — your Claude Code tokens for today, 7 and 30 days, with an API-equivalent cost estimate.
 - Settings in English and Ukrainian: theme, size, shape (notch or pill), monitor, apps to hide behind, the show/hide
   hotkey (<kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>Space</kbd>) and per-module options.
 
-No accounts, no telemetry. Everything lives in `%AppData%\Isle\` (override with `ISLE_DATA_DIR`). The network is used
-only by Projects (the `gh` and `git` CLIs, for repositories you add). Agent hooks are never installed silently:
+No accounts, no telemetry. Everything lives in `%AppData%\Isle\` (override with `ISLE_DATA_DIR`). Config files of
+other tools (`~/.ssh`, `~/.aws`, `~/.azure`, gcloud, `~/.kube`, glab) are only read, never written. The network is used
+only by features you turn on:
+
+| Feature | What talks to the network |
+|---|---|
+| Projects, GitHub | the `gh` and `git` CLIs, for repositories you add |
+| Projects, GitLab | HTTPS to the GitLab host you configure (token from Settings or your glab login), no redirects |
+| Servers | TCP connects to the ssh hosts you switch on, and HTTP / TLS checks of the watch-list entries you add |
+
+Docker and Podman are reached over their local named pipe only. Agent hooks are never installed silently:
 **Settings → Options → Agents** shows exactly what will change and backs up the config file.
+
+## Needs re-verification
+
+These parts are covered by unit tests and code review but have not yet been run against the real software, so treat
+them as unverified until someone confirms them:
+
+- **GitLab** — merge requests and pipelines (cloud and self-hosted) have only been tested against recorded API
+  responses.
+- **Podman** — the engine pipe (`\\.\pipe\podman-machine-default`) has not been tried with a real Podman machine.
+- **Gemini CLI hooks** — installing, receiving events and removing them have not been tried with Gemini CLI installed.
+- **Servers → Open in Windows Terminal** — the `wt.exe ssh <host>` launch (and its plain `ssh` fallback).
+
+## Not supported (skipped on purpose)
+
+- **GitHub Copilot CLI hooks** — the docs don't give the Windows command format or the stdin payload, so there was
+  nothing reliable to build on.
+- **Cursor CLI hooks** — hooks are unreliable on Windows.
 
 ## Build and run
 
@@ -63,6 +109,13 @@ src/Isle.Hook/     helper the coding agents call to talk to Isle over a named pi
 src/Isle.Launcher/ small Rust launcher that starts Isle.exe
 tests/Isle.Tests/  xUnit tests
 ```
+
+## Releases and CI
+
+Every push to `main` and every pull request is built, tested and smoke-checked on GitHub Actions
+([`ci.yml`](.github/workflows/ci.yml)). Pushing a tag such as `v1.1.0` that matches `<Version>` in
+`Directory.Build.props` publishes a GitHub release with both packages ([`release.yml`](.github/workflows/release.yml)).
+Dependabot opens monthly update pull requests for the workflow actions and NuGet packages.
 
 More in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`docs/DECISIONS.md`](docs/DECISIONS.md). New user-facing text
 goes into both the `en` and `uk` tables of `src/Isle/Core/Strings.Data.cs`; a test checks they match.
