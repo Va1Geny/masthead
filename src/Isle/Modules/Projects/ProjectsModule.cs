@@ -191,7 +191,7 @@ public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
         {
             Id = PillId, Priority = PillPriority.Transient, Width = Math.Clamp(60 + text.Length * 6.5, 160, 300), Peek = true,
             View = () => PillView(text, brush),
-            Click = url is null ? null : () => ProcessOps.Open(url),
+            Click = url is null ? null : () => ProcessOps.OpenUrl(url),
             TabId = url is null ? null : TabId,
         }, 7);
     }

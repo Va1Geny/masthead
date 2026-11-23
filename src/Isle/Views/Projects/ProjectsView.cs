@@ -86,7 +86,7 @@ public sealed class ProjectsView : Grid, ITabView
                 var t = new TextBlock { Text = $"{r.Repo}  ·  {r.Title}", Margin = new Thickness(12, 0, 0, 1), TextTrimming = TextTrimming.CharacterEllipsis, FontSize = 11.5, Cursor = System.Windows.Input.Cursors.Hand, ToolTip = r.Author };
                 t.SetResourceReference(TextBlock.ForegroundProperty, "AccentTextBrush");
                 var url = r.Url;
-                t.MouseLeftButtonUp += (_, _) => ProcessOps.Open(url);
+                t.MouseLeftButtonUp += (_, _) => ProcessOps.OpenUrl(url);
                 _top.Children.Add(t);
             }
         }
@@ -195,7 +195,7 @@ public sealed class ProjectsView : Grid, ITabView
         var t = new TextBlock { Text = glyph, FontSize = 13, FontWeight = FontWeights.SemiBold, TextAlignment = TextAlignment.Center };
         t.SetResourceReference(TextBlock.ForegroundProperty, brush);
         var url = r.Ci?.Url is { Length: > 0 } u ? u : r.GitLab is not null ? null : $"https://github.com/{r.GitHub}/actions";
-        var b = Ui.IconButton(t, 28, () => { if (url is not null) ProcessOps.Open(url); }, "projects ci");
+        var b = Ui.IconButton(t, 28, () => { if (url is not null) ProcessOps.OpenUrl(url); }, "projects ci");
         var tip = Strings.T(key) + (r.Ci is { Name.Length: > 0 } run ? " · " + run.Name : "");
         b.ToolTip = tip;
         System.Windows.Automation.AutomationProperties.SetName(b, tip);
