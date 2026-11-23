@@ -22,7 +22,7 @@ public static class SetupModel
 
     public static readonly SetupQuestion[] Questions =
     [
-        new("agent", "setup.agent", [new("claude", "setup.claude", "claude", ".claude"), new("codex", "setup.codex", "codex", ".codex"), NoChoice]),
+        new("agent", "setup.agent", [new("claude", "setup.claude", "claude", ".claude"), new("codex", "setup.codex", "codex", ".codex"), new("gemini", "setup.gemini", "gemini", ".gemini"), NoChoice]),
         new("git", "setup.git", [new("github", "setup.github", "gh"), NoChoice]),
         new("containers", "setup.containers", [new("docker", "setup.docker", "docker", Path: @"\\.\pipe\docker_engine"), NoChoice]),
     ];

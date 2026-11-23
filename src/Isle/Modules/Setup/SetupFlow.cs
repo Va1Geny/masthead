@@ -1,4 +1,5 @@
 using Isle.Core;
+using Isle.Modules.Agents;
 using Isle.Views.Setup;
 
 namespace Isle.Modules.Setup;
@@ -42,6 +43,7 @@ public static class SetupFlow
     static void Start(IslandWindow w, IReadOnlyDictionary<string, string> answers, ISet<string> ticked)
     {
         SetupModel.Apply(Settings.Current, answers, ticked);
+        HookInstaller.RemoveFromOthers(answers["agent"], HookTarget.All(), DateTime.Now); // only Isle's own entries
         Settings.Current.Save("Modules");
         App.Host.Sync();
         w.HideOverlay();

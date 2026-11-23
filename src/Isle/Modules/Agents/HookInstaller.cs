@@ -7,7 +7,7 @@ using Isle.Core;
 namespace Isle.Modules.Agents;
 
 /// <summary>One agent whose config can receive Isle's hooks.</summary>
-/// <param name="Agent">"claude" or "codex" (first argument of Isle.Hook.exe).</param>
+/// <param name="Agent">"claude", "codex" or "gemini" (first argument of Isle.Hook.exe).</param>
 /// <param name="ConfigPath">~/.claude/settings.json or ~/.codex/hooks.json.</param>
 public sealed record HookTarget(string Agent, string ConfigPath)
 {
@@ -28,6 +28,14 @@ public sealed record HookTarget(string Agent, string ConfigPath)
         if (string.IsNullOrWhiteSpace(dir)) dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".codex");
         return new HookTarget("codex", Path.Combine(dir, "hooks.json"));
     }
+
+    public static HookTarget Gemini() =>
+        new("gemini", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".gemini", "settings.json"));
+
+    public static HookTarget[] All() => [Claude(), Codex(), Gemini()];
+
+    /// <summary>The target of one agent id ("claude" / "codex" / "gemini"); all targets for anything else (never chosen).</summary>
+    public static HookTarget[] For(string? agent) => All().Where(t => t.Agent == agent).ToArray() is { Length: > 0 } one ? one : All();
 }
 
 /// <summary>What Install/Remove would do — shown to the user before anything is written.</summary>
@@ -78,7 +86,18 @@ public static class HookInstaller
         new("SessionEnd", null, false),
     ];
 
-    public static Entry[] EntriesFor(string agent) => agent == "codex" ? CodexEntries : ClaudeEntries;
+    /// <summary>Gemini CLI event names (mapped to the internal ones in <see cref="HookProtocol.GeminiEvents"/>). Observe-only:
+    /// no BeforeTool/permission blocking, so nothing waits. Notification is left out (its payload has no Claude equivalent).</summary>
+    public static readonly Entry[] GeminiEntries =
+    [
+        new("SessionStart", null, false),
+        new("BeforeAgent", null, false),
+        new("BeforeTool", null, false),
+        new("AfterAgent", null, false),
+        new("SessionEnd", null, false),
+    ];
+
+    public static Entry[] EntriesFor(string agent) => agent switch { "codex" => CodexEntries, "gemini" => GeminiEntries, _ => ClaudeEntries };
 
     /// <summary>Stable copy of the helper used by the hooks (survives rebuilds/moves of Isle itself).</summary>
     public static string InstalledExe => Path.Combine(Paths.Root, "bin", ExeName);
@@ -128,6 +147,17 @@ public static class HookInstaller
         return backup;
     }
 
+    /// <summary>Switching agent: removes Isle's own hook entries from every agent that is not <paramref name="chosen"/>
+    /// ("none" removes them everywhere); other hooks in those files stay. Returns the agents that were cleaned.</summary>
+    public static List<string> RemoveFromOthers(string chosen, IEnumerable<HookTarget> targets, DateTime now)
+    {
+        List<string> cleaned = [];
+        foreach (var t in targets.Where(t => t.Agent != chosen))
+            try { if (Remove(t, now) is not null) cleaned.Add(t.Agent); }
+            catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException) { Logger.Warn($"hooks: could not clean {t.Agent} ({ex.GetType().Name})"); }
+        return cleaned;
+    }
+
     // ---- pure JSON edits (tested) ----
 
     /// <summary>Removes old Isle entries, then appends one matcher group per <see cref="Entry"/>.</summary>
@@ -155,6 +185,12 @@ public static class HookInstaller
 
     static JsonObject Handler(string agent, string exe, bool waits, int timeoutSeconds)
     {
+        if (agent == "gemini")
+        {
+            // Gemini runs `command` through a shell; timeout is in milliseconds.
+            var cmd = (exe.Contains(' ') ? $"\"{exe}\"" : exe) + " gemini --async";
+            return new JsonObject { ["type"] = "command", ["command"] = cmd, ["timeout"] = 10_000 };
+        }
         if (agent == "codex")
         {
             // Codex runs `command` through a shell; quote the path only when needed.
@@ -233,7 +269,7 @@ public static class HookInstaller
             }
             args = command.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         }
-        if (!TrustedHelper(executable, helperPath) || args.Length == 0 || args[0] is not ("claude" or "codex")) return false;
+        if (!TrustedHelper(executable, helperPath) || args.Length == 0 || args[0] is not ("claude" or "codex" or "gemini")) return false;
         // Both current exec-array hooks and legacy direct command lines use these switches.
         var asyncSeen = false;
         var timeoutSeen = false;

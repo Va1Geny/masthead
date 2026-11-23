@@ -119,6 +119,7 @@ public static class AgentText
     {
         "claude" => "Claude Code",
         "codex" => "Codex",
+        "gemini" => "Gemini CLI",
         _ => agent,
     };
 

@@ -20,6 +20,7 @@ public sealed record HookMessage(string Agent, bool Wait, int TimeoutSeconds, Js
             if (JsonNode.Parse(line) is not JsonObject o || o["v"] is not JsonValue v ||
                 !v.TryGetValue<int>(out var version) || version != HookProtocol.Version || o["input"] is not JsonObject input) return null;
             var agent = HookProtocol.Str(o, "agent") is { Length: > 0 } a ? a : "claude";
+            if (agent == "gemini" && HookProtocol.GeminiEvents.TryGetValue(HookProtocol.Str(input, "hook_event_name"), out var ev)) input["hook_event_name"] = ev;
             var wait = o["wait"] is JsonValue w && w.TryGetValue<bool>(out var b) && b;
             var timeout = o["timeout"] is JsonValue t && t.TryGetValue<int>(out var n) ? Math.Clamp(n, 5, 3600) : HookProtocol.DefaultTimeoutSeconds;
             var sent = o["sent"] is JsonValue stamp && stamp.TryGetValue<long>(out var ticks) && ticks > 0 ? ticks : 0;

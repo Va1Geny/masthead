@@ -201,8 +201,8 @@ public sealed class AgentsModule(IslandWindow island) : IModule, IDisposable
 
     // ---- hooks ----
 
-    /// <summary>Hook targets to offer: only the agent chosen in the developer setup ("setup.agent"), both when never chosen.</summary>
-    static HookTarget[] Targets() => S.Opt("setup.agent") switch { "claude" => [HookTarget.Claude()], "codex" => [HookTarget.Codex()], _ => [HookTarget.Claude(), HookTarget.Codex()] };
+    /// <summary>Hook targets to offer: only the agent chosen in the developer setup ("setup.agent"), all when never chosen.</summary>
+    static HookTarget[] Targets() => HookTarget.For(S.Opt("setup.agent"));
 
     static bool AnyHooksInstalled() => Targets().Any(HookInstaller.IsInstalled);
 
