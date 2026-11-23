@@ -38,15 +38,16 @@ developer features below, and nothing else.
   <img src="docs/images/dev-ports.png" alt="Ports tab" width="520">
 - **Docker** — containers grouped by compose project over the Docker (or Podman) engine pipe, updated live from engine
   events: start / stop / restart, live-following logs, compose up / restart / down, friendly labels for local databases,
-  disk usage and a cleanup that asks first (volumes are never pruned). Pills when a container keeps crashing or the
-  engine stops.
+  disk usage and a cleanup that asks first (volumes are never pruned). Compose buttons appear only for projects whose
+  compose files are on a local drive. Pills when a container keeps crashing or the engine stops.
   <img src="docs/images/dev-docker.png" alt="Docker tab" width="520">
 - **Projects** — branch, changes and ahead/behind of watched repositories with the latest CI run (GitHub Actions via
   `gh`, GitLab pipelines), **Fetch** and fast-forward-only **Pull**, pull requests waiting for your review, GitLab merge
   requests, and a build-time sparkline per project. Pills when CI or a local build or test run (`dotnet`, `npm`,
   `cargo`, `go`, `pytest`, `make`…) finishes.
   <img src="docs/images/dev-projects.png" alt="Projects tab" width="520">
-- **Servers** — hosts from `~/.ssh/config` with an opt-in reachability check and **Open in Windows Terminal**; AWS
+- **Servers** — hosts from `~/.ssh/config` (aliases with unusual characters are skipped) with an opt-in reachability
+  check and **Open in Windows Terminal**; AWS
   profiles with the SSO login expiry, the Azure subscription and the gcloud account (all read-only); and a watch list of
   URLs and hosts checked for being down, an expiring or untrusted TLS certificate, or a status-page incident.
   <img src="docs/images/dev-servers.png" alt="Servers tab" width="520">
@@ -65,11 +66,31 @@ only by features you turn on:
 | Feature | What talks to the network |
 |---|---|
 | Projects, GitHub | the `gh` and `git` CLIs, for repositories you add |
-| Projects, GitLab | HTTPS to the GitLab host you configure (token from Settings or your glab login), no redirects |
+| Projects, GitLab | HTTPS to the GitLab host you configure (a plain host name, optionally with a port; token from Settings or your glab login), no redirects |
 | Servers | TCP connects to the ssh hosts you switch on, and HTTP / TLS checks of the watch-list entries you add |
 
 Docker and Podman are reached over their local named pipe only. Agent hooks are never installed silently:
 **Settings → Options → Agents** shows exactly what will change and backs up the config file.
+
+## Security
+
+Isle runs as you and treats everything it reads (repositories, CI and merge-request data, container labels and logs,
+config files, server responses) as untrusted:
+
+- The agent hook endpoint is a named pipe only your Windows account can open; connections from other machines are
+  refused.
+- Links from GitHub, GitLab, CI and the watch list open only if they are `http` or `https`.
+- Command-line tools (`git`, `gh`, `docker`, `wt`…) are started with separate arguments, never through a shell, and are
+  never picked up from the folder Isle was started in.
+- Agent hooks are refused for a helper path a shell could misread; the GitLab token goes only to the configured host.
+- Tokens are encrypted with Windows DPAPI for your account and never logged; the AWS SSO cache is read for its expiry
+  only.
+- Streams and responses (Docker logs, status pages, GitLab) are size-capped.
+
+The repository side: the build fails on NuGet packages with known high or critical vulnerabilities (transitive ones
+included), workflow actions are pinned to commit SHAs, Dependabot raises security-fix pull requests, CodeQL scans the
+C# code once the repository is public, and `main` is protected against force pushes and deletion. To report a
+vulnerability, see [`SECURITY.md`](SECURITY.md).
 
 ## Needs re-verification
 
@@ -87,6 +108,16 @@ them as unverified until someone confirms them:
 - **GitHub Copilot CLI hooks** — the docs don't give the Windows command format or the stdin payload, so there was
   nothing reliable to build on.
 - **Cursor CLI hooks** — hooks are unreliable on Windows.
+
+## Download
+
+Grab the latest release (currently **1.1.0**) from the
+[Releases](https://github.com/Va1Geny/island/releases) page:
+
+- `Isle-v1.1.0-win-x64.zip` — small, needs the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0);
+- `Isle-v1.1.0-win-x64-selfcontained.zip` — larger, runs without any runtime.
+
+Unzip it to a permanent folder and run `Isle.exe`.
 
 ## Build and run
 
@@ -115,7 +146,9 @@ tests/Isle.Tests/  xUnit tests
 Every push to `main` and every pull request is built, tested and smoke-checked on GitHub Actions
 ([`ci.yml`](.github/workflows/ci.yml)). Pushing a tag such as `v1.1.0` that matches `<Version>` in
 `Directory.Build.props` publishes a GitHub release with both packages ([`release.yml`](.github/workflows/release.yml)).
-Dependabot opens monthly update pull requests for the workflow actions and NuGet packages.
+Dependabot opens monthly update pull requests for the workflow actions and NuGet packages, plus security-fix pull
+requests when an advisory appears. CodeQL ([`codeql.yml`](.github/workflows/codeql.yml)) runs on pushes, pull requests
+and weekly; it skips itself while the repository is private.
 
 More in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`docs/DECISIONS.md`](docs/DECISIONS.md). New user-facing text
 goes into both the `en` and `uk` tables of `src/Isle/Core/Strings.Data.cs`; a test checks they match.
