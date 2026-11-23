@@ -21,7 +21,6 @@ public sealed class MediaModule(IslandWindow island) : IModule, IDisposable
     string? _banneredTrack;
     bool _pillShown;
 
-    bool _playingPublished;
 
     public string Id => "media";
 
@@ -44,8 +43,6 @@ public sealed class MediaModule(IslandWindow island) : IModule, IDisposable
     void OnChanged()
     {
         var cur = _session?.Current;
-        var playing = cur?.IsPlaying == true;
-        if (playing != _playingPublished) { _playingPublished = playing; EventBus.Publish(new MusicPlaying(playing)); }
         if (cur is null)
         {
             HidePill();
@@ -139,11 +136,7 @@ public sealed class MediaModule(IslandWindow island) : IModule, IDisposable
         _compacts.Clear();
         _pillShown = false;
         Theme.SetAccent(null);
-        if (_playingPublished) { _playingPublished = false; EventBus.Publish(new MusicPlaying(false)); }
     }
 
     public void Dispose() { if (_session is not null) Stop(); }
 }
-
-/// <summary>Published when playback starts or stops (any source).</summary>
-public sealed record MusicPlaying(bool Playing);

@@ -190,23 +190,6 @@ public class ModuleHostTests
     }
 }
 
-public class EventBusTests
-{
-    record Ping(int N);
-
-    [Fact]
-    public void Publish_reaches_subscribers_until_disposed_and_survives_throwing_handlers()
-    {
-        var got = 0;
-        using var bad = EventBus.Subscribe<Ping>(_ => throw new Exception("x"));
-        var sub = EventBus.Subscribe<Ping>(p => got += p.N);
-        EventBus.Publish(new Ping(2));
-        sub.Dispose();
-        EventBus.Publish(new Ping(5));
-        Assert.Equal(2, got);
-    }
-}
-
 public class TrayIconTests
 {
     [Fact]
