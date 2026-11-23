@@ -26,6 +26,15 @@ One line each: decision — why.
 - UI-C3 / H5 uses distinct accent text and fill contrast, adds keyboard focus and accessibility names, and respects reduced motion.
 - UI-M1–M4 fits the rendered stage to its monitor, preserves stable display and tab choices, and measures or wraps translated labels.
 
+## Security review
+- Links from outside data (CI runs, PRs/MRs, GitLab) go through `ProcessOps.OpenUrl`: absolute http(s) only, re-escaped. `ProcessOps.Open` is for paths and links Isle builds itself.
+- The hook pipe drops clients Windows reports a computer name for: `CurrentUserOnly` does not set `PIPE_REJECT_REMOTE_CLIENTS`, and the same domain account could otherwise connect over SMB. Same-user local processes are trusted (they can edit the agents' configs anyway), so there is no extra token.
+- Isle's current directory is its own folder: tools are started by bare name and Windows searches the current directory before PATH.
+- Compose buttons only for labels compose would write (compose project name, drive-rooted local paths): any image can set those labels.
+- Codex/Gemini hook commands are shell strings; a helper path with characters a shell would interpret is refused (only a space is quoted; no quoting of `& ; ' % $` works in cmd, PowerShell and sh alike).
+- ssh aliases are limited to letters, digits and `. _ - @ : +`: `wt.exe` splits its arguments at `;`.
+- Response caps: GitLab 4 MiB, watch-list checks 1 MiB, followed Docker log lines 4096 chars (500 kept).
+
 ## M0
 - Repo root is the solution root (`Isle.sln` at the top level).
 - `Isle.sln` in classic `.sln` format (not `.slnx`) — matches the spec's file name and older tooling.
