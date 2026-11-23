@@ -23,7 +23,6 @@ public partial class IslandWindow
     bool _hasFocus;         // island took keyboard focus for a text box
     bool _focusOnExpand;
     IntPtr _previousForeground;
-    readonly HashSet<string> _holdOpen = [];
     readonly HashSet<string> _hideReasons = [];
     string _lastSavedTab = "";
 
@@ -111,7 +110,7 @@ public partial class IslandWindow
         if (_outsideSince == 0) _outsideSince = now;
         if (_expanded)
         {
-            if (now - _outsideSince >= LeaveDelayMs && !_sticky && !_hasFocus && _holdOpen.Count == 0) Collapse();
+            if (now - _outsideSince >= LeaveDelayMs && !_sticky && !_hasFocus) Collapse();
             return;
         }
         if (_awaitLeave)
@@ -217,14 +216,6 @@ public partial class IslandWindow
         }, DispatcherPriority.Loaded);
     }
 
-    /// <summary>Keeps the panel open regardless of the pointer until <see cref="ReleaseOpen"/> (drag, dialogs, busy work).</summary>
-    public void HoldOpen(string key) => _holdOpen.Add(key);
-
-    public void ReleaseOpen(string key)
-    {
-        if (_holdOpen.Remove(key) && _expanded && _hoverTimer is { IsEnabled: false }) _hoverTimer.Start();
-    }
-
     // ---- keyboard focus ----
 
     void OnPreviewMouseDown(object sender, MouseButtonEventArgs e)
@@ -277,11 +268,8 @@ public partial class IslandWindow
         _focusOnExpand = false;
         ApplyExStyle();
         Keyboard.ClearFocus();
-        if (_expanded && !IsCursorInside() && _holdOpen.Count == 0) Collapse();
+        if (_expanded && !IsCursorInside()) Collapse();
     }
-
-    /// <summary>The window to paste into: whoever was in front before the island (or right now).</summary>
-    public IntPtr PasteTarget => _hasFocus && _previousForeground != IntPtr.Zero ? _previousForeground : Watcher.LastExternal;
 
     // ---- hide rules ----
 

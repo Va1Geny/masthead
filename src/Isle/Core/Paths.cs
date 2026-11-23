@@ -1,5 +1,3 @@
-using System.IO;
-
 namespace Isle.Core;
 
 /// <summary>All on-disk locations. Set ISLE_DATA_DIR (or <see cref="Root"/> in tests) to redirect.</summary>

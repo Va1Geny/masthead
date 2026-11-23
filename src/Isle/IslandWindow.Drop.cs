@@ -20,7 +20,7 @@ public partial class IslandWindow
     void OnDragOver(object sender, DragEventArgs e)
     {
         e.Handled = true;
-        if (FileDropTarget is not { } t || !e.Data.GetDataPresent(DataFormats.FileDrop) || _holdOpen.Contains("shelf-drag"))
+        if (FileDropTarget is not { } t || !e.Data.GetDataPresent(DataFormats.FileDrop))
         {
             e.Effects = DragDropEffects.None;
             return;
@@ -39,7 +39,7 @@ public partial class IslandWindow
         if (FileDropTarget is not { } t) return;
         t.Hint(false);
         var effect = ShelfDropEffect(e.AllowedEffects);
-        if (effect != DragDropEffects.None && !_holdOpen.Contains("shelf-drag") &&
+        if (effect != DragDropEffects.None &&
             e.Data.GetData(DataFormats.FileDrop) is string[] files && files.Length > 0)
             Safe(() => { if (t.Drop(files)) e.Effects = effect; }, "shelf drop");
     }

@@ -1,5 +1,3 @@
-using System.IO;
-
 namespace Isle.Core;
 
 /// <summary>Tiny append-only log with 1 MB rotation. Never throws. Never pass secrets or user content.</summary>

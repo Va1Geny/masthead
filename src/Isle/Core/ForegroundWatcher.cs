@@ -6,19 +6,15 @@ namespace Isle.Core;
 
 /// <summary>
 /// Event-driven foreground-window tracking (SetWinEventHook, no polling). Start once on the UI thread.
-/// Also remembers the last foreground window that is not ours, which is the paste target for clipboard/voice/AI.
 /// </summary>
 public sealed class ForegroundWatcher : IDisposable
 {
-    const uint EVENT_SYSTEM_FOREGROUND = 3, EVENT_SYSTEM_MINIMIZEEND = 0x17, WINEVENT_OUTOFCONTEXT = 0, WINEVENT_SKIPOWNPROCESS = 2;
+    const uint EVENT_SYSTEM_FOREGROUND = 3, WINEVENT_OUTOFCONTEXT = 0, WINEVENT_SKIPOWNPROCESS = 2;
 
     readonly Native.WinEventDelegate _callback; // keep alive
     IntPtr _hook;
 
     public event Action<IntPtr>? Changed;
-
-    /// <summary>Most recent foreground window belonging to another process.</summary>
-    public IntPtr LastExternal { get; private set; }
 
     public ForegroundWatcher() => _callback = OnEvent;
 
@@ -26,8 +22,6 @@ public sealed class ForegroundWatcher : IDisposable
     {
         if (_hook != IntPtr.Zero) return;
         _hook = Native.SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, IntPtr.Zero, _callback, 0, 0, WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);
-        var fg = Native.GetForegroundWindow();
-        if (fg != IntPtr.Zero && !IsOwn(fg)) LastExternal = fg;
     }
 
     void OnEvent(IntPtr hook, uint evt, IntPtr hwnd, int idObject, int idChild, uint thread, uint time)
@@ -35,7 +29,6 @@ public sealed class ForegroundWatcher : IDisposable
         if (hwnd == IntPtr.Zero || idObject != 0) return;
         try
         {
-            if (!IsOwn(hwnd)) LastExternal = hwnd;
             Changed?.Invoke(hwnd);
         }
         catch (Exception ex) { Logger.Error("foreground handler", ex); }
