@@ -41,7 +41,8 @@ public partial class App : Application
             return;
         }
 
-        if (e.Args.Length > 0 && e.Args[0].StartsWith("--", StringComparison.Ordinal))
+        // Only this flag needs the packs before start-up (Home registers it); any other flag starts Isle normally.
+        if (e.Args.Length > 0 && e.Args[0] == "--transcribe")
         {
             Packs.Load();
             if (DebugCommands.TryGetValue(e.Args[0], out var command))
