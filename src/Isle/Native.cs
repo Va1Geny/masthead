@@ -230,4 +230,11 @@ internal static partial class Native
 
     [DllImport("dwmapi.dll", EntryPoint = "DwmGetWindowAttribute")]
     public static extern int DwmGetWindowAttributeInt(IntPtr hwnd, int attr, out int value, int size);
+
+    // ---- named pipes ----
+    public const int ERROR_PIPE_LOCAL = 229;
+
+    [DllImport("kernel32.dll", EntryPoint = "GetNamedPipeClientComputerNameW", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetNamedPipeClientComputerName(Microsoft.Win32.SafeHandles.SafePipeHandle pipe, char[] name, uint sizeBytes);
 }

@@ -37,4 +37,25 @@ public class SecurityTests
         Assert.Null(DockerParse.ComposeArgs("--file=x", @"C:\demo", null, "up"));                          // not a project name
         Assert.Null(DockerParse.ComposeArgs("", @"C:\demo", null, "up"));
     }
+
+    [Fact]
+    public async Task Hook_pipe_drops_clients_from_other_machines()
+    {
+        var name = "Isle.Agents.test." + Guid.NewGuid().ToString("N");
+        var handled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var server = new AgentPipeServer(name, (_, _) => { handled.TrySetResult(); return Task.FromResult<string?>(null); });
+        server.Start();
+        // \\127.0.0.1\pipe\… goes through the SMB server, exactly like a client on another machine signed in as this user.
+        using var client = new NamedPipeClientStream("127.0.0.1", name, PipeDirection.InOut, PipeOptions.Asynchronous);
+        try { await client.ConnectAsync(3000); }
+        catch (Exception ex) when (ex is TimeoutException or IOException or UnauthorizedAccessException) { return; } // no SMB server here: nothing to check
+        try
+        {
+            await HookProtocol.WriteLineAsync(client, HookProtocol.Request("claude", false, 5, new JsonObject { ["hook_event_name"] = "Stop" }), CancellationToken.None);
+            Assert.Equal(0, await client.ReadAsync(new byte[1]).AsTask().WaitAsync(TimeSpan.FromSeconds(5))); // closed without a reply
+        }
+        catch (IOException) { } // or reset before the write
+        await Task.Delay(300);
+        Assert.False(handled.Task.IsCompleted);
+    }
 }

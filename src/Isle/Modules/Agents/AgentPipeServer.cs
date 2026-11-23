@@ -5,7 +5,7 @@ using Isle.Core;
 namespace Isle.Modules.Agents;
 
 /// <summary>
-/// Named-pipe server for Isle.Hook.exe (current user only, any number of concurrent hook calls). One request line per
+/// Named-pipe server for Isle.Hook.exe (current user, local clients only, any number of concurrent hook calls). One request line per
 /// connection; for waiting calls the handler's reply is written back. The handler's token is cancelled when the hook
 /// disconnects (its own timeout, Ctrl+C in the terminal) or after the hook's timeout + 5 s.
 /// </summary>
@@ -50,6 +50,7 @@ public sealed class AgentPipeServer(string pipeName, Func<HookMessage, Cancellat
         {
             try
             {
+                if (!IsLocal(pipe)) return;
                 string? line;
                 using (var readCts = CancellationTokenSource.CreateLinkedTokenSource(ct))
                 {
@@ -75,6 +76,14 @@ public sealed class AgentPipeServer(string pipeName, Func<HookMessage, Cancellat
             catch (Exception ex) { Logger.Error("agent pipe serve", ex); }
         }
     }
+
+    /// <summary>
+    /// CurrentUserOnly limits the pipe to this account but does not set PIPE_REJECT_REMOTE_CLIENTS, so the same (domain) account could
+    /// still connect over SMB from another machine. Windows names the computer of such a client and fails with ERROR_PIPE_LOCAL for a local one.
+    /// </summary>
+    internal static bool IsLocal(NamedPipeServerStream pipe) =>
+        !Native.GetNamedPipeClientComputerName(pipe.SafePipeHandle, new char[256], 512) &&
+        System.Runtime.InteropServices.Marshal.GetLastPInvokeError() == Native.ERROR_PIPE_LOCAL;
 
     /// <summary>The hook sends nothing after its request; a completed read means it closed the pipe.</summary>
     static async Task WatchDisconnect(NamedPipeServerStream pipe, CancellationTokenSource cts)
