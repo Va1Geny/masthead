@@ -121,10 +121,41 @@ public static partial class GitHosts
 /// <summary>One finished build or test run.</summary>
 public sealed record BuildRun(double Seconds, bool Ok);
 
-/// <summary>Last runs per build label ("dotnet test"), kept in builds.json next to the settings.</summary>
+/// <summary>
+/// Last runs per watched project path (the label, "dotnet test", when no project matched), kept in builds.json next
+/// to the settings. Older files keyed only by label load unchanged and just stay label entries.
+/// </summary>
 public static class BuildHistory
 {
     public const int Keep = 10;
+
+    static string Norm(string p) => p.Replace('/', '\\').TrimEnd('\\');
+
+    /// <summary>
+    /// The deepest watched repository for the first hint (command line, then working directory) that falls inside one,
+    /// or null. Case-insensitive, either slash, trailing slashes ignored; "C:" does not match "C:b".
+    /// </summary>
+    public static string? Match(IEnumerable<string> repos, params string?[] hints)
+    {
+        var all = repos.Select(r => (Path: r, N: Norm(r))).Where(r => r.N.Length > 0).OrderByDescending(r => r.N.Length).ToList();
+        foreach (var h in hints)
+        {
+            if (string.IsNullOrWhiteSpace(h)) continue;
+            var n = Norm(h);
+            foreach (var r in all)
+                for (var at = n.IndexOf(r.N, StringComparison.OrdinalIgnoreCase); at >= 0; at = n.IndexOf(r.N, at + 1, StringComparison.OrdinalIgnoreCase))
+                {
+                    var end = at + r.N.Length;
+                    if ((at == 0 || n[at - 1] is ' ' or '"' or '=') && (end == n.Length || n[end] is '\\' or ' ' or '"'))
+                        return r.Path;
+                }
+        }
+        return null;
+    }
+
+    /// <summary>"▁▃█  42 s  ·  avg 45 s" for one history.</summary>
+    public static string Trend(IReadOnlyList<BuildRun> runs) =>
+        $"{Spark(runs)}  {Secs(runs[^1].Seconds)}" + (runs.Count > 1 ? "  ·  " + Strings.T("projects.avg", Secs(runs.Average(x => x.Seconds))) : "");
 
     public static void Add(Dictionary<string, List<BuildRun>> h, string label, BuildRun run)
     {

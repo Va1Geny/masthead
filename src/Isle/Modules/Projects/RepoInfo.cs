@@ -13,7 +13,7 @@ public enum CiState { None, Running, Passed, Failed, Cancelled }
 public sealed record CiRun(long Id, string Name, CiState State, string Url, DateTimeOffset Updated);
 
 /// <summary>One watched repository as the Projects tab shows it.</summary>
-public sealed record Repo(string Path, string Name, RepoStatus? Status, string? GitHub, CiRun? Ci, string? GitLab = null);
+public sealed record Repo(string Path, string Name, RepoStatus? Status, string? GitHub, CiRun? Ci, string? GitLab = null, IReadOnlyList<BuildRun>? Builds = null);
 
 /// <summary>Parsers for git and gh output (pure; unit tested).</summary>
 public static partial class RepoParse

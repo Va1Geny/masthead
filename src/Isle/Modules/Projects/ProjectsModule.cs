@@ -39,18 +39,21 @@ public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
         island.AddTab(new TabInfo(TabId, "tab.projects", "Icon.Branch", () => new ProjectsView(new ProjectsActions(
             Refresh: ct => RefreshAsync(withCi: true, ct),
             Reviews: ReviewsAsync,
-            Builds: () => _history.OrderByDescending(h => h.Value.Count).Take(2).Select(h => (h.Key, (IReadOnlyList<BuildRun>)h.Value.ToList())).ToList(),
+            Builds: () => { lock (_history) return _history.Where(h => !System.IO.Path.IsPathRooted(h.Key)).OrderByDescending(h => h.Value.Count).Take(2).Select(h => (h.Key, (IReadOnlyList<BuildRun>)h.Value.ToList())).ToList(); },
             Fetch: GitHosts.FetchAsync,
             Pull: GitHosts.PullAsync,
             Configure: () => App.OpenSettings("options"))), 98));
 
         if (Settings.Current.OptBool("projects.builds", true))
         {
-            _builds = new BuildWatcher();
+            _builds = new BuildWatcher { Repos = Paths };
             _builds.Finished += r => island.Dispatcher.BeginInvoke(() =>
             {
-                BuildHistory.Add(_history, r.Label, new BuildRun(r.Duration.TotalSeconds, r.ExitCode is null or 0));
-                BuildHistory.Save(Isle.Core.Paths.File("builds.json"), _history);
+                lock (_history)
+                {
+                    BuildHistory.Add(_history, r.Project ?? r.Label, new BuildRun(r.Duration.TotalSeconds, r.ExitCode is null or 0));
+                    BuildHistory.Save(Isle.Core.Paths.File("builds.json"), _history);
+                }
                 Announce(BuildText(r), r.ExitCode is null or 0 ? "OkBrush" : "DangerBrush", null);
             });
             _buildTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(3) };
@@ -111,12 +114,14 @@ public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
                     if (github is not null && GitHosts.Provider() == "github") ci = await LatestRunAsync(github, status.Branch, ct).ConfigureAwait(false);
                     else if (gitlab is not null) ci = await GitLabPipelineAsync(gitlab, status.Branch, ct).ConfigureAwait(false);
                 }
-                repos.Add(new Repo(path, System.IO.Path.GetFileName(path.TrimEnd('\\', '/')), status, github, ci, gitlab));
+                repos.Add(new Repo(path, System.IO.Path.GetFileName(path.TrimEnd('\\', '/')), status, github, ci, gitlab, BuildsOf(path)));
             }
             return repos;
         }
         finally { _gate.Release(); }
     }
+
+    IReadOnlyList<BuildRun>? BuildsOf(string path) { lock (_history) return _history.TryGetValue(path, out var l) ? l.ToList() : null; }
 
     async Task<CiRun?> LatestRunAsync(string ownerRepo, string branch, CancellationToken ct)
     {
