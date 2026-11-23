@@ -15,7 +15,8 @@ public sealed record SetupItem(string Id, string LabelKey, bool Alert = false, b
 /// <summary>Pure rules of the first-run setup (data-driven; Phase 2 adds entries to the two lists).</summary>
 public static class SetupModel
 {
-    public const int Limit = 10;
+    /// <summary>The counter's max. It follows the item list (it was a fixed 10 that blocked adding a module); the step-2 list scrolls, so no other cap.</summary>
+    public static int Limit => Items.Length;
     public const string None = "none";
 
     static readonly SetupChoice NoChoice = new(None, "setup.none");
@@ -49,7 +50,7 @@ public static class SetupModel
     public static HashSet<string> Defaults(string agent, bool kubeconfigExists, bool containers = false) =>
         Items.Where(i => !i.Online && Offered(i.Id, agent) && (i.Id != "kube" || kubeconfigExists) && (i.Id != "docker" || containers)).Select(i => i.Id).ToHashSet();
 
-    public static bool CanTick(ISet<string> ticked, string id, int limit = Limit) => ticked.Contains(id) || ticked.Count < limit;
+    public static bool CanTick(ISet<string> ticked, string id, int? limit = null) => ticked.Contains(id) || ticked.Count < (limit ?? Limit);
 
     public static bool KubeconfigExists() =>
         KubeConfig.Paths(Environment.GetEnvironmentVariable("KUBECONFIG"), Environment.GetEnvironmentVariable("USERPROFILE") ?? "").Any(File.Exists);
