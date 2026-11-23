@@ -95,8 +95,9 @@ public sealed class DockerView : Grid, ITabView
     FrameworkElement Header(string project, List<Box> boxes)
     {
         var head = new DockPanel { Margin = new Thickness(4, 8, 0, 3) };
-        var first = boxes.FirstOrDefault(b => b.WorkDir is not null || b.ConfigFiles is not null);
-        if (project.Length > 0 && first is not null)
+        // compose actions only from labels that pass ComposeArgs' checks (any image can set them)
+        var first = boxes.FirstOrDefault(b => (b.WorkDir ?? b.ConfigFiles) is not null && DockerParse.ComposeArgs(project, b.WorkDir, b.ConfigFiles) is not null);
+        if (first is not null)
         {
             var buttons = new StackPanel { Orientation = Orientation.Horizontal };
             buttons.Children.Add(Act("Icon.Play", Strings.T("docker.up", project), () => Compose(project, first, "up", "-d")));
@@ -162,7 +163,7 @@ public sealed class DockerView : Grid, ITabView
     async void Compose(string project, Box any, params string[] verb)
     {
         _island.ShowToast(Strings.T("docker.composeRunning", project));
-        var (code, _) = await Cli.RunAsync(_m.Engine, DockerParse.ComposeArgs(project, any.WorkDir, any.ConfigFiles, verb), any.WorkDir, TimeSpan.FromMinutes(5));
+        var (code, _) = await Cli.RunAsync(_m.Engine, DockerParse.ComposeArgs(project, any.WorkDir, any.ConfigFiles, verb)!, any.WorkDir, TimeSpan.FromMinutes(5));
         _island.ShowToast(Strings.T(code == 0 ? "docker.composeDone" : "docker.composeFailed", project));
     }
 

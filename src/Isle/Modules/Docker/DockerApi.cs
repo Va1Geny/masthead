@@ -2,6 +2,7 @@ using System.IO.Pipes;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Isle.Core;
 
 namespace Isle.Modules.Docker;
@@ -112,15 +113,27 @@ public static class DockerParse
         return i == 0 ? Encoding.UTF8.GetString(data) : sb.ToString(); // no frames: TTY, plain text
     }
 
-    /// <summary>Arguments for <c>docker compose</c> on a project, from the labels compose wrote on its containers.</summary>
-    public static List<string> ComposeArgs(string project, string? workDir, string? configFiles, params string[] verb)
+    /// <summary>
+    /// Arguments for <c>docker compose</c> on a project, from the labels compose wrote on its containers. Any image can carry these labels,
+    /// so null unless they look like what compose writes: a compose project name and drive-rooted local paths (no UNC, device or
+    /// relative path that would point compose at someone else's files).
+    /// </summary>
+    public static List<string>? ComposeArgs(string project, string? workDir, string? configFiles, params string[] verb)
     {
+        if (!Regex.IsMatch(project, "^[a-z0-9][a-z0-9_-]*$") || workDir is not null && !LocalPath(workDir)) return null;
         var args = new List<string> { "compose", "-p", project };
-        if (!string.IsNullOrEmpty(workDir)) { args.Add("--project-directory"); args.Add(workDir); }
-        foreach (var f in (configFiles ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)) { args.Add("-f"); args.Add(f); }
+        if (workDir is not null) { args.Add("--project-directory"); args.Add(workDir); }
+        foreach (var f in (configFiles ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (!LocalPath(f)) return null;
+            args.Add("-f");
+            args.Add(f);
+        }
         args.AddRange(verb);
         return args;
     }
+
+    static bool LocalPath(string p) => p.Length >= 3 && char.IsAsciiLetter(p[0]) && p[1] == ':' && p[2] is '\\' or '/';
 }
 
 /// <summary>

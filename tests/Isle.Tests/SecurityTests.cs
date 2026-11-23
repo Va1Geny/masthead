@@ -23,4 +23,18 @@ public class SecurityTests
                      "ms-msdt:/id PCWDiagnostic", "search-ms:query=x", "javascript:alert(1)", "vscode://file/C:/x", "https://", "" })
             Assert.Null(ProcessOps.WebUrl(bad));
     }
+
+    [Fact]
+    public void Compose_actions_refuse_labels_compose_would_not_write()
+    {
+        Assert.NotNull(DockerParse.ComposeArgs("shop_1-x", @"C:\demo\shop", @"C:\demo\shop\compose.yaml", "up", "-d"));
+        Assert.NotNull(DockerParse.ComposeArgs("shop", null, "D:/work/compose.yaml", "down"));
+        Assert.Null(DockerParse.ComposeArgs("shop", @"\\attacker\share", null, "up", "-d"));            // UNC project dir
+        Assert.Null(DockerParse.ComposeArgs("shop", @"C:\demo", @"C:\demo\a.yaml,\\attacker\s\b.yaml", "up")); // UNC compose file
+        Assert.Null(DockerParse.ComposeArgs("shop", @"\\?\C:\demo", null, "up"));                          // device path
+        Assert.Null(DockerParse.ComposeArgs("shop", @"..\demo", null, "up"));                              // relative
+        Assert.Null(DockerParse.ComposeArgs("shop", "/home/me/demo", null, "up"));                         // not a Windows path
+        Assert.Null(DockerParse.ComposeArgs("--file=x", @"C:\demo", null, "up"));                          // not a project name
+        Assert.Null(DockerParse.ComposeArgs("", @"C:\demo", null, "up"));
+    }
 }
