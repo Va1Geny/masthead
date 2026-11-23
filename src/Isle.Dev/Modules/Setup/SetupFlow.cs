@@ -26,9 +26,17 @@ public static class SetupFlow
             var found = SetupModel.Detect(OnPath, p => File.Exists(p) || Directory.Exists(p), Environment.GetEnvironmentVariable("USERPROFILE") ?? "");
             var kube = SetupModel.KubeconfigExists();
             var (answers, ticked) = SetupModel.Initial(Settings.Current, found, kube);
-            w.ShowOverlay(new SetupView(found, kube, answers, ticked, (a, t) => Start(w, a, t), () => w.HideOverlay()));
+            w.ShowOverlay(new SetupView(found, kube, answers, ticked, (a, t) => Start(w, a, t), () => Close(w)));
         }
         catch (Exception ex) { Logger.Error("setup", ex); }
+    }
+
+    /// <summary>Closing with X counts as done: it never shows again by itself ("Run setup again" still opens it).</summary>
+    static void Close(IslandWindow w)
+    {
+        Settings.Current.SetOpt("setup.done", true);
+        Settings.Current.Save("Options");
+        w.HideOverlay();
     }
 
     static void Start(IslandWindow w, IReadOnlyDictionary<string, string> answers, ISet<string> ticked)
