@@ -21,7 +21,7 @@ public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
     const string PillId = "projects.event";
 
     BuildWatcher? _builds;
-    DispatcherTimer? _buildTimer, _ciTimer, _pillTimer;
+    DispatcherTimer? _buildTimer, _ciTimer;
     HttpClient? _http;
     readonly Dictionary<string, CiRun?> _lastRuns = [];
     readonly SemaphoreSlim _gate = new(1, 1);
@@ -212,21 +212,15 @@ public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
 
     void Announce(string text, string brush, string? url)
     {
-        island.Pill.Set(new PillItem
+        island.Pill.Flash(new PillItem
         {
             Id = PillId, Priority = PillPriority.Transient, Width = Math.Clamp(60 + text.Length * 6.5, 160, 300), Peek = true,
             View = () => PillView(text, brush),
             Click = url is null ? null : () => ProcessOps.Open(url),
             TabId = url is null ? null : TabId,
-        });
-        _pillTimer ??= new DispatcherTimer { Interval = TimeSpan.FromSeconds(7) };
-        _pillTimer.Tick -= HidePill;
-        _pillTimer.Tick += HidePill;
-        _pillTimer.Stop();
-        _pillTimer.Start();
+        }, 7);
     }
 
-    void HidePill(object? sender, EventArgs e) { _pillTimer?.Stop(); island.Pill.Remove(PillId); }
 
     internal static FrameworkElement PillView(string text, string brush)
     {
@@ -241,7 +235,6 @@ public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
         _buildTimer = null;
         _ciTimer?.Stop();
         _ciTimer = null;
-        _pillTimer?.Stop();
         island.Pill.Remove(PillId);
         island.RemoveTab(TabId);
         _builds?.Dispose();

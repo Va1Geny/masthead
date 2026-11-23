@@ -87,7 +87,7 @@ public sealed class KubeModule(IslandWindow island) : IModule, IDisposable
     readonly List<FileSystemWatcher> _watchers = [];
     List<string> _files = [];
     Regex _pattern = KubeConfig.BuildPattern(null, out _);
-    DispatcherTimer? _debounce, _bannerTimer;
+    DispatcherTimer? _debounce;
     string? _context;
     bool _running;
 
@@ -181,17 +181,8 @@ public sealed class KubeModule(IslandWindow island) : IModule, IDisposable
 
     void Banner(string ctx)
     {
-        island.Pill.Set(BannerItem(ctx));
-        if (_bannerTimer is null)
-        {
-            _bannerTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(6) };
-            _bannerTimer.Tick += HideBanner;
-        }
-        _bannerTimer.Stop();
-        _bannerTimer.Start();
+        island.Pill.Flash(BannerItem(ctx), 6);
     }
-
-    void HideBanner(object? s, EventArgs e) { _bannerTimer?.Stop(); island.Pill.Remove(BannerId); }
 
     public void Stop()
     {
@@ -199,7 +190,6 @@ public sealed class KubeModule(IslandWindow island) : IModule, IDisposable
         foreach (var w in _watchers) w.Dispose();
         _watchers.Clear();
         _debounce?.Stop();
-        _bannerTimer?.Stop();
         island.Pill.Remove(IndicatorId);
         island.Pill.Remove(BannerId);
         _context = null;

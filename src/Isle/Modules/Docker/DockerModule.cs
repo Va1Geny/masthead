@@ -16,7 +16,6 @@ public sealed class DockerModule(IslandWindow island) : IModule, IDisposable
     const string DownId = "docker.down", CrashId = "docker.crash";
 
     CancellationTokenSource? _cts;
-    readonly Dictionary<string, DispatcherTimer> _hideTimers = [];
     int _refreshing;
     volatile bool _again;
 
@@ -92,7 +91,7 @@ public sealed class DockerModule(IslandWindow island) : IModule, IDisposable
         var was = Up;
         Up = up;
         if (up) island.Pill.Remove(DownId);
-        else if (showDown && was) Flash(DownItem(Engine), 7);
+        else if (showDown && was) island.Pill.Flash(DownItem(Engine), 7);
     }
 
     internal static PillItem DownItem(string engine) => new()
@@ -111,27 +110,13 @@ public sealed class DockerModule(IslandWindow island) : IModule, IDisposable
 
     static string Name(string engine) => engine == "podman" ? "Podman" : "Docker";
 
-    void Crash(string name) => Flash(CrashItem(name), 8);
-
-    /// <summary>Shows the pill, then removes it after <paramref name="seconds"/> (restarted on a repeat).</summary>
-    void Flash(PillItem item, double seconds)
-    {
-        island.Pill.Set(item);
-        if (!_hideTimers.TryGetValue(item.Id, out var t))
-        {
-            _hideTimers[item.Id] = t = new DispatcherTimer { Interval = TimeSpan.FromSeconds(seconds) };
-            t.Tick += (_, _) => { t.Stop(); island.Pill.Remove(item.Id); };
-        }
-        t.Stop();
-        t.Start();
-    }
+    void Crash(string name) => island.Pill.Flash(CrashItem(name), 8);
 
     public void Stop()
     {
         var cts = _cts;
         _cts = null;
         cts?.Cancel();
-        foreach (var t in _hideTimers.Values) t.Stop();
         island.Pill.Remove(DownId);
         island.Pill.Remove(CrashId);
         island.RemoveTab(TabId);

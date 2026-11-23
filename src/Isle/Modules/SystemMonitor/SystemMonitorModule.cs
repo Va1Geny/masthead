@@ -32,7 +32,7 @@ public sealed class SystemMonitorModule(IslandWindow island) : IModule, IDisposa
     const string PillId = "sysmon.alert";
 
     SystemSampler? _sampler;
-    DispatcherTimer? _background, _pillTimer;
+    DispatcherTimer? _background;
     readonly SustainedAlert _cpuAlert = new(90, TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(10));
     readonly SustainedAlert _memAlert = new(90, TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(10));
 
@@ -65,23 +65,13 @@ public sealed class SystemMonitorModule(IslandWindow island) : IModule, IDisposa
 
     void Alert(string text)
     {
-        island.Pill.Set(new PillItem
+        island.Pill.Flash(new PillItem
         {
             Id = PillId, Priority = PillPriority.Transient, Width = 200, Peek = true, TabId = TabId,
             View = () => AlertView(text),
-        });
-        _pillTimer ??= new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
-        _pillTimer.Tick -= HidePill;
-        _pillTimer.Tick += HidePill;
-        _pillTimer.Stop();
-        _pillTimer.Start();
+        }, 8);
     }
 
-    void HidePill(object? sender, EventArgs e)
-    {
-        _pillTimer?.Stop();
-        island.Pill.Remove(PillId);
-    }
 
     internal static FrameworkElement AlertView(string text)
     {
@@ -99,7 +89,6 @@ public sealed class SystemMonitorModule(IslandWindow island) : IModule, IDisposa
     {
         _background?.Stop();
         _background = null;
-        _pillTimer?.Stop();
         island.Pill.Remove(PillId);
         island.RemoveTab(TabId);
         _sampler?.Dispose();

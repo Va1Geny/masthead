@@ -59,7 +59,7 @@ public sealed class LogWatchModule(IslandWindow island) : IModule, IDisposable
     public const string DefaultPattern = @"\b(?:ERROR|FATAL|CRITICAL|Unhandled|panic)\b|Exception\b";
 
     readonly List<LogTail> _tails = [];
-    DispatcherTimer? _timer, _pillTimer;
+    DispatcherTimer? _timer;
     DateTime _quietUntil;
 
     public string Id => "logs";
@@ -94,20 +94,14 @@ public sealed class LogWatchModule(IslandWindow island) : IModule, IDisposable
 
     void Announce(string path, string line)
     {
-        island.Pill.Set(new PillItem
+        island.Pill.Flash(new PillItem
         {
             Id = PillId, Priority = PillPriority.Transient, Width = 300, Peek = true,
             View = () => PillView(System.IO.Path.GetFileName(path), line),
             Click = () => ProcessOps.Open(path),
-        });
-        _pillTimer ??= new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
-        _pillTimer.Tick -= HidePill;
-        _pillTimer.Tick += HidePill;
-        _pillTimer.Stop();
-        _pillTimer.Start();
+        }, 8);
     }
 
-    void HidePill(object? sender, EventArgs e) { _pillTimer?.Stop(); island.Pill.Remove(PillId); }
 
     internal static FrameworkElement PillView(string file, string line)
     {
@@ -125,7 +119,6 @@ public sealed class LogWatchModule(IslandWindow island) : IModule, IDisposable
     {
         _timer?.Stop();
         _timer = null;
-        _pillTimer?.Stop();
         island.Pill.Remove(PillId);
         _tails.Clear();
     }
