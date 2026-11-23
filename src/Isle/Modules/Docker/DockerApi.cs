@@ -123,6 +123,66 @@ public static class DockerParse
     }
 }
 
+/// <summary>
+/// Incremental form of <see cref="DockerParse.Logs"/> for a followed stream: bytes arrive in arbitrary chunks (headers, payloads and
+/// multi-byte characters can be split anywhere) and complete lines come out. Framed (8-byte header) or TTY (plain) is decided from the first bytes.
+/// </summary>
+public sealed class LogDemux
+{
+    readonly List<byte> _pending = [];
+    readonly Dictionary<int, (Decoder Dec, StringBuilder Line)> _streams = [];
+    bool? _framed;
+
+    public List<string> Push(ReadOnlySpan<byte> chunk)
+    {
+        List<string> lines = [];
+        foreach (var b in chunk) _pending.Add(b);
+        if (_framed is null)
+        {
+            if (_pending.Count == 0) return lines;
+            if (_pending[0] > 2) _framed = false;
+            else if (_pending.Count < 4) return lines;
+            else _framed = _pending[1] == 0 && _pending[2] == 0 && _pending[3] == 0;
+        }
+        if (_framed == false)
+        {
+            Text(0, _pending.ToArray(), lines);
+            _pending.Clear();
+            return lines;
+        }
+        while (_pending.Count >= 8)
+        {
+            var len = (_pending[4] << 24) | (_pending[5] << 16) | (_pending[6] << 8) | _pending[7];
+            if (len < 0 || _pending.Count < 8 + len) break; // wait for the rest of the frame
+            Text(_pending[0], _pending.GetRange(8, len).ToArray(), lines);
+            _pending.RemoveRange(0, 8 + len);
+        }
+        return lines;
+    }
+
+    /// <summary>At the end of the stream: a last line that had no newline.</summary>
+    public List<string> Flush()
+    {
+        var rest = _streams.Values.Where(s => s.Line.Length > 0).Select(s => s.Line.ToString()).ToList();
+        foreach (var s in _streams.Values) s.Line.Clear();
+        return rest;
+    }
+
+    void Text(int stream, byte[] bytes, List<string> lines)
+    {
+        if (!_streams.TryGetValue(stream, out var s)) _streams[stream] = s = (Encoding.UTF8.GetDecoder(), new StringBuilder());
+        var chars = new char[s.Dec.GetCharCount(bytes, 0, bytes.Length)];
+        s.Dec.GetChars(bytes, 0, bytes.Length, chars, 0);
+        foreach (var c in chars)
+        {
+            if (c != '\n') { s.Line.Append(c); continue; }
+            if (s.Line.Length > 0 && s.Line[^1] == '\r') s.Line.Length--;
+            lines.Add(s.Line.ToString());
+            s.Line.Clear();
+        }
+    }
+}
+
 /// <summary>Several "die" events of one container inside a short window mean a crash loop.</summary>
 public sealed class CrashTracker
 {
@@ -150,6 +210,7 @@ public sealed class DockerApi : IDisposable
 
     readonly string _pipe;
     readonly HttpClient _http;
+    readonly CancellationTokenSource _stop = new();
 
     public DockerApi(string pipePath)
     {
@@ -186,10 +247,20 @@ public sealed class DockerApi : IDisposable
     public async Task<List<Box>> ListAsync() => DockerParse.Containers(await Get("containers/json?all=1").ConfigureAwait(false));
     public async Task<DiskUsage> DfAsync() => DockerParse.Df(await Get("system/df").ConfigureAwait(false));
 
-    public async Task<string> LogsAsync(string id)
+    /// <summary>The last 100 lines, then new ones as they are written, until <paramref name="ct"/> is cancelled, the container's stream ends or the engine goes away (the exception ends the call).
+    /// <paramref name="onLines"/> runs on a pool thread, once per received chunk.</summary>
+    public async Task FollowLogsAsync(string id, Action<List<string>> onLines, CancellationToken ct)
     {
-        using var r = await Send(HttpMethod.Get, $"containers/{id}/logs?stdout=1&stderr=1&tail=100", TimeSpan.FromSeconds(10)).ConfigureAwait(false);
-        return DockerParse.Logs(await r.Content.ReadAsByteArrayAsync().ConfigureAwait(false));
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct, _stop.Token);
+        using var r = await _http.GetAsync($"containers/{id}/logs?follow=1&stdout=1&stderr=1&tail=100", HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false);
+        r.EnsureSuccessStatusCode();
+        await using var s = await r.Content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false);
+        var demux = new LogDemux();
+        var buf = new byte[8192];
+        int n;
+        while ((n = await s.ReadAsync(buf, cts.Token).ConfigureAwait(false)) > 0)
+            if (demux.Push(buf.AsSpan(0, n)) is { Count: > 0 } lines) onLines(lines);
+        if (demux.Flush() is { Count: > 0 } rest) onLines(rest);
     }
 
     /// <summary>action: start | stop | restart.</summary>
@@ -219,5 +290,10 @@ public sealed class DockerApi : IDisposable
             if (DockerParse.Event(line) is { } e) onEvent(e);
     }
 
-    public void Dispose() => _http.Dispose();
+    public void Dispose()
+    {
+        _stop.Cancel(); // ends followed log streams
+        _http.Dispose();
+        _stop.Dispose();
+    }
 }
