@@ -37,6 +37,32 @@ public sealed class CodexUsageTests : IDisposable
     }
 
     [Fact]
+    public void Multi_day_session_splits_by_day_and_newest_rate_limits_win()
+    {
+        static string Limits(string ts, double used, long resets) =>
+            "{\"timestamp\":\"" + ts + "\",\"type\":\"event_msg\",\"payload\":{\"type\":\"token_count\",\"info\":null,\"rate_limits\":{\"primary\":{\"used_percent\":" +
+            used.ToString(System.Globalization.CultureInfo.InvariantCulture) + ",\"window_minutes\":10080,\"resets_at\":" + resets + "},\"secondary\":null}}}";
+        // noon UTC keeps both events on their own local day in any time zone
+        var path = Rollout("rollout-e.jsonl", Meta,
+            Count("2026-11-22T12:00:00Z", Usage(100, 40, 10)), Limits("2026-11-22T12:00:01Z", 3, 1_800_000_000),
+            Count("2026-11-23T12:00:00Z", Usage(300, 100, 50)), Count("2026-11-23T12:00:01Z", Usage(300, 100, 50)),
+            Limits("2026-11-23T12:00:02Z", 7.6, 1_800_000_000));
+        var st = CodexScanner.ParseFile(path, out var limits)!;
+        string Day(string iso) => DateTimeOffset.Parse(iso, System.Globalization.CultureInfo.InvariantCulture).ToLocalTime().ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        var d1 = st.Days[Day("2026-11-22T12:00:00Z")].Single().Value;
+        var d2 = st.Days[Day("2026-11-23T12:00:00Z")].Single().Value;
+        Assert.Equal((60, 40, 10), (d1.In, d1.CacheRead, d1.Out));
+        Assert.Equal((140, 60, 40), (d2.In, d2.CacheRead, d2.Out)); // the repeated total adds nothing
+        var w = Assert.Single(limits!.Windows);
+        Assert.Equal((7.6, 10080, 1_800_000_000L), (w.UsedPercent, w.WindowMinutes, w.ResetsAt));
+
+        // the report drops a window whose reset has passed
+        var data = new UsageData { Limits = limits };
+        Assert.Single(UsageReport.Build(data, DateTimeOffset.FromUnixTimeSeconds(1_700_000_000)).Limits!);
+        Assert.Empty(UsageReport.Build(data, DateTimeOffset.FromUnixTimeSeconds(1_900_000_000)).Limits!);
+    }
+
+    [Fact]
     public void No_token_data_or_model_falls_back()
     {
         Assert.Null(CodexScanner.ParseFile(Rollout("rollout-b.jsonl", Meta, Count("2026-11-22T10:01:00Z", null))));

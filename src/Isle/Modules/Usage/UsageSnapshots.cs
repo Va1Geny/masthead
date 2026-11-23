@@ -44,6 +44,10 @@ static class UsageSnapshots
                 S("mobile-app", 50, 41, T(3_000, 26_000, 2_900_000, 150_000), "claude-fable-9-9"),
                 S("weather-api", 70, 18, T(210_000, 41_000, 1_600_000, 0), "gpt-5-codex"),
             ],
-            now.AddMinutes(-1));
+            now.AddMinutes(-1),
+            [
+                new RateWindow { UsedPercent = 41, WindowMinutes = 300, ResetsAt = now.AddHours(2).ToUnixTimeSeconds() },
+                new RateWindow { UsedPercent = 12, WindowMinutes = 10080, ResetsAt = now.AddDays(4).ToUnixTimeSeconds() },
+            ]);
     }
 }

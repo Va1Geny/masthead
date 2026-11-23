@@ -6,23 +6,26 @@ using Isle.Modules.Agents;
 namespace Isle.Modules.Usage;
 
 /// <summary>
-/// Codex usage: one rollout file = one session. Token counts are cumulative per session, so the last non-null
-/// total_token_usage wins. Reuses <see cref="FileState"/>/<see cref="UsageData"/>; Offset holds the file length
+/// Codex usage: one rollout file = one session. Token counts are cumulative per session, so each token_count event
+/// adds its delta to the day it happened on. Reuses <see cref="FileState"/>/<see cref="UsageData"/>; Offset holds the file length
 /// (a changed length or creation time means "reparse this file"). Only counters, model, time and the cwd leaf are read.
 /// </summary>
 internal static class CodexScanner
 {
     public static string DefaultSessionsDir() => Path.Combine(Path.GetDirectoryName(HookTarget.Codex().ConfigPath)!, "sessions");
 
-    /// <summary>Parses one rollout; null when it has no token data.</summary>
-    public static FileState? ParseFile(string path)
+    /// <summary>Parses one rollout; null when it has no token data. <paramref name="limits"/> = its newest rate_limits.</summary>
+    public static FileState? ParseFile(string path) => ParseFile(path, out _);
+
+    public static FileState? ParseFile(string path, out CodexLimits? limits)
     {
         using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         using var reader = new StreamReader(fs);
         var st = new FileState();
-        Tokens? total = null;
+        limits = null;
         var model = "codex";
         long start = 0, last = 0;
+        long pUncached = 0, pCached = 0, pOut = 0; // previous cumulative totals: each event adds its delta to its own day
         string? line;
         while ((line = reader.ReadLine()) is not null)
         {
@@ -42,24 +45,42 @@ internal static class CodexScanner
                     case "turn_context":
                         if (Str(p, "model") is { Length: > 0 } m) model = m;
                         break;
-                    case "event_msg" when Str(p, "type") == "token_count"
-                        && p.TryGetProperty("info", out var info) && info.ValueKind == JsonValueKind.Object
-                        && info.TryGetProperty("total_token_usage", out var u) && u.ValueKind == JsonValueKind.Object:
+                    case "event_msg" when Str(p, "type") == "token_count":
+                        if (Limits(p, time) is { } l) limits = l;
+                        if (!p.TryGetProperty("info", out var info) || info.ValueKind != JsonValueKind.Object
+                            || !info.TryGetProperty("total_token_usage", out var u) || u.ValueKind != JsonValueKind.Object) break;
                         var input = Num(u, "input_tokens");
                         var cached = Math.Min(Num(u, "cached_input_tokens"), input); // a subset of input
-                        total = new Tokens { In = input - cached, CacheRead = cached, Out = Num(u, "output_tokens") }; // output already includes reasoning
+                        var (uncached, output) = (input - cached, Num(u, "output_tokens")); // output already includes reasoning
+                        if (uncached < pUncached || cached < pCached || output < pOut) (pUncached, pCached, pOut) = (0, 0, 0); // counters restarted
+                        var d = new Tokens { In = uncached - pUncached, CacheRead = cached - pCached, Out = output - pOut };
+                        (pUncached, pCached, pOut) = (uncached, cached, output);
                         if (time > last) last = time;
+                        if (d.Total == 0) break; // repeated total
+                        var day = DateTimeOffset.FromUnixTimeMilliseconds(time > 0 ? time : Math.Max(last, start)).ToLocalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                        if (!st.Days.TryGetValue(day, out var models)) st.Days[day] = models = [];
+                        if (models.TryGetValue(model, out var sum)) sum.Add(d); else models[model] = d;
                         break;
                 }
             }
             catch (JsonException) { }
         }
-        if (total is null || total.Total == 0) return null;
+        if (st.Days.Count == 0) return null;
         st.First = start > 0 ? start : last;
         st.Last = Math.Max(last, st.First);
-        var day = DateTimeOffset.FromUnixTimeMilliseconds(st.Last).ToLocalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        st.Days[day] = new() { [model] = total };
         return st;
+    }
+
+    /// <summary>The rate_limits windows of a token_count payload (primary, secondary), or null when it has none.</summary>
+    static CodexLimits? Limits(JsonElement p, long time)
+    {
+        if (!p.TryGetProperty("rate_limits", out var rl) || rl.ValueKind != JsonValueKind.Object) return null;
+        var l = new CodexLimits { At = time };
+        foreach (var name in (string[])["primary", "secondary"])
+            if (rl.TryGetProperty(name, out var w) && w.ValueKind == JsonValueKind.Object
+                && w.TryGetProperty("used_percent", out var up) && up.ValueKind == JsonValueKind.Number)
+                l.Windows.Add(new RateWindow { UsedPercent = up.GetDouble(), WindowMinutes = (int)Num(w, "window_minutes"), ResetsAt = Num(w, "resets_at") });
+        return l.Windows.Count > 0 ? l : null;
     }
 
     /// <summary>Reparses new or changed rollouts into <paramref name="data"/> (keys "codex/…"); true when anything changed.</summary>
@@ -80,7 +101,8 @@ internal static class CodexScanner
                         var info = new FileInfo(path);
                         var created = info.CreationTimeUtc.Ticks;
                         if (data.Files.TryGetValue(key, out var old) && old.Offset == info.Length && old.Created == created) continue;
-                        var st = ParseFile(path) ?? new FileState();
+                        var st = ParseFile(path, out var limits) ?? new FileState();
+                        if (limits is not null && limits.At >= (data.Limits?.At ?? 0)) data.Limits = limits;
                         st.Offset = info.Length; st.Created = created; st.Session = key; st.Slug = "codex";
                         data.Files[key] = st;
                         changed = true;

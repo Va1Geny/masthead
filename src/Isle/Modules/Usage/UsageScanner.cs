@@ -31,12 +31,30 @@ public sealed class UsageData
     public const int CurrentVersion = 2; // 2: dedupe across files; version 1 stores are rescanned
     public int Version { get; set; } = CurrentVersion;
     public Dictionary<string, FileState> Files { get; set; } = [];
+    /// <summary>Codex store only: the newest rate-limit windows seen in any rollout.</summary>
+    public CodexLimits? Limits { get; set; }
 
     public static UsageData Load(string path)
     {
         var d = JsonStore.Load<UsageData>(path);
         return d.Version == CurrentVersion ? d : new UsageData();
     }
+}
+
+public sealed class CodexLimits
+{
+    /// <summary>Time of the event that reported them, unix ms.</summary>
+    public long At { get; set; }
+    public List<RateWindow> Windows { get; set; } = [];
+}
+
+/// <summary>One Codex rate-limit window, e.g. 5 hours or 7 days.</summary>
+public sealed class RateWindow
+{
+    public double UsedPercent { get; set; }
+    public int WindowMinutes { get; set; }
+    /// <summary>Unix seconds.</summary>
+    public long ResetsAt { get; set; }
 }
 
 /// <summary>One assistant usage line. Only counters, model, time and the leaf folder of cwd are kept: never message content.</summary>
@@ -286,6 +304,7 @@ public sealed class UsageService(string projectsDir, string storePath, string? c
             _codex ??= UsageData.Load(CodexStore);
             if (CodexScanner.Scan(codexDir, _codex, ct)) JsonStore.Save(CodexStore, _codex);
             foreach (var (k, v) in _codex.Files) merged.Files[k] = v;
+            merged.Limits = _codex.Limits;
         }
         return Report = UsageReport.Build(merged, DateTimeOffset.Now);
     }, ct);

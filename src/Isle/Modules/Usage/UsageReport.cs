@@ -8,7 +8,8 @@ public sealed record UsageTotal(Tokens Tokens, decimal? Cost, bool Partial = fal
 public sealed record SessionRow(string Project, string[] Models, DateTimeOffset Start, TimeSpan Duration, Tokens Tokens, decimal? Cost, bool Partial = false);
 
 /// <summary>What the Usage tab shows: totals for today / 7 / 30 days and the most recent sessions.</summary>
-public sealed record UsageReport(UsageTotal Today, UsageTotal Week, UsageTotal Month, IReadOnlyList<SessionRow> Sessions, DateTimeOffset At)
+public sealed record UsageReport(UsageTotal Today, UsageTotal Week, UsageTotal Month, IReadOnlyList<SessionRow> Sessions, DateTimeOffset At,
+    IReadOnlyList<RateWindow>? Limits = null)
 {
     public const int MaxSessions = 20;
 
@@ -48,7 +49,9 @@ public sealed record UsageReport(UsageTotal Today, UsageTotal Week, UsageTotal M
                 TimeSpan.FromMilliseconds(last - first), all, cost, partial);
         }).OrderByDescending(s => s.Start + s.Duration).Take(MaxSessions).ToList();
 
-        return new UsageReport(Total(t0), Total(t7), Total(t30), sessions, now);
+        // a window past its reset says nothing about the new one
+        var limits = data.Limits?.Windows.Where(w => DateTimeOffset.FromUnixTimeSeconds(w.ResetsAt) > now).ToList();
+        return new UsageReport(Total(t0), Total(t7), Total(t30), sessions, now, limits);
     }
 
     static void Merge(Dictionary<string, Tokens> into, string model, Tokens t)

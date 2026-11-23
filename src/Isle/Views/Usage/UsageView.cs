@@ -8,8 +8,8 @@ using Isle.Modules.Usage;
 namespace Isle.Views.Usage;
 
 /// <summary>
-/// Usage tab: tokens and an API-equivalent cost estimate for Claude Code sessions: totals for today / 7 / 30 days,
-/// then the most recent sessions. Scans (off the UI thread) only when shown and on the refresh button.
+/// Usage tab: tokens and an API-equivalent cost estimate for Claude Code / Codex sessions: totals for today / 7 / 30 days,
+/// Codex rate limits when known, then the most recent sessions. Scans (off the UI thread) only when shown and on the refresh button.
 /// </summary>
 public sealed class UsageView : Grid, ITabView
 {
@@ -79,6 +79,17 @@ public sealed class UsageView : Grid, ITabView
         status.Margin = new Thickness(8, 0, 4, 0);
         DockPanel.SetDock(status, Dock.Right);
         bar.Children.Add(status);
+        var culture = CultureInfo.GetCultureInfo(Strings.Language == "uk" ? "uk-UA" : "en-GB");
+        if (r.Limits is { Count: > 0 } limits)
+        {
+            var lim = Ui.Dim(Strings.T("usage.limits", string.Join(" · ", limits.Select(w => Limit(w, culture)))));
+            lim.FontSize = 10.5;
+            lim.Margin = new Thickness(0, 0, 10, 0);
+            var top = limits.Max(w => w.UsedPercent);
+            if (top >= 80) lim.SetResourceReference(TextBlock.ForegroundProperty, top >= 95 ? "DangerBrush" : "WarnBrush");
+            DockPanel.SetDock(lim, Dock.Left);
+            bar.Children.Add(lim);
+        }
         var note = Ui.Dim(Strings.T("usage.note"));
         note.FontSize = 10.5;
         note.ToolTip = Strings.T("usage.note");
@@ -87,7 +98,6 @@ public sealed class UsageView : Grid, ITabView
         grid.Children.Add(bar);
 
         var list = new StackPanel();
-        var culture = CultureInfo.GetCultureInfo(Strings.Language == "uk" ? "uk-UA" : "en-GB");
         foreach (var s in r.Sessions)
             list.Children.Add(Row(s.Project, string.Join(", ", s.Models.Select(UsageReport.ModelName)),
                 s.Start.ToString("d MMM HH:mm", culture), Duration(s.Duration), UsageReport.Count(s.Tokens.Total), UsageReport.Money(s.Cost, s.Partial)));
@@ -163,6 +173,16 @@ public sealed class UsageView : Grid, ITabView
             stack.Children.Add(b);
         }
         return stack;
+    }
+
+    /// <summary>"7d 3%, resets 18 May 14:12" (only the time when it resets today).</summary>
+    internal static string Limit(RateWindow w, CultureInfo culture)
+    {
+        var m = w.WindowMinutes;
+        var span = m >= 1440 && m % 1440 == 0 ? Strings.T("usage.win.d", m / 1440) : Strings.T("usage.win.h", Math.Max(1, (int)Math.Round(m / 60.0)));
+        var at = DateTimeOffset.FromUnixTimeSeconds(w.ResetsAt).ToLocalTime();
+        var when = at.ToString(at.Date == DateTime.Today ? "HH:mm" : "d MMM HH:mm", culture);
+        return Strings.T("usage.limit", span, (int)Math.Round(w.UsedPercent), when);
     }
 
     /// <summary>"1h 12m", "5m", "&lt;1m".</summary>
