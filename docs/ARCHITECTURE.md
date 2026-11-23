@@ -93,8 +93,8 @@ states in `IslandWindow.RunSnapshot`. Helpers: `Core/Cli` (run a console tool, c
   Option `ports.notify`.
 - **Projects** (`projects`, `Modules/Projects`) — `RepoParse` (git porcelain v2, GitHub remotes, Actions runs, search
   counts), `BuildWatcher` + `BuildCommand` (recognise build/test command lines via `NtQueryInformationProcess`, keep a
-  process handle for the exit code), `ProjectsModule` (git via `Cli`, GitHub REST with an optional DPAPI token, pills).
-  View `Views/Projects/ProjectsView`. Options `projects.paths`, `projects.builds`, `projects.githubToken`.
+  process handle for the exit code), `ProjectsModule` (git via `Cli`, GitHub CI and reviews via the gh CLI, pills).
+  View `Views/Projects/ProjectsView`. Options `projects.paths`, `projects.builds`.
 - **Log watcher** (`logs`, `Modules/Logs`) — `LogTail` (follow a file from its end, survive rotation, first matching
   line), `LogWatchModule` (2 s poll, pill, 15 s quiet period). Options `logs.files`, `logs.pattern`.
 - **Kubernetes context** (`kube`, `Modules/Kube`) — `KubeConfig` (kubectl file order from `KUBECONFIG` or

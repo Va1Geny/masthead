@@ -36,10 +36,10 @@ public class ProjectsTests
     [InlineData("completed", "cancelled", CiState.Cancelled)]
     public void Latest_actions_run_is_parsed(string status, string? conclusion, CiState expected)
     {
-        var json = $$"""{"total_count":1,"workflow_runs":[{"id":42,"name":"build","status":"{{status}}","conclusion":{{(conclusion is null ? "null" : $"\"{conclusion}\"")}},"html_url":"https://github.com/o/r/actions/runs/42","updated_at":"2026-11-21T10:00:00Z"}]}""";
+        var json = $$"""[{"databaseId":42,"name":"build","status":"{{status}}","conclusion":"{{conclusion}}","url":"https://github.com/o/r/actions/runs/42","updatedAt":"2026-11-21T10:00:00Z"}]""";
         var run = RepoParse.LatestRun(json)!;
         Assert.Equal((42L, "build", expected), (run.Id, run.Name, run.State));
-        Assert.Null(RepoParse.LatestRun("""{"total_count":0,"workflow_runs":[]}"""));
+        Assert.Null(RepoParse.LatestRun("[]"));
     }
 
     [Fact]

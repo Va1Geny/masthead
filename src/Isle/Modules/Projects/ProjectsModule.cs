@@ -1,5 +1,4 @@
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -12,8 +11,8 @@ namespace Isle.Modules.Projects;
 /// <summary>
 /// Projects (module id "projects"): the Projects tab (branch, changes, ahead/behind and the latest GitHub Actions
 /// run of each watched repository), a pill when a CI run finishes, and a pill when a local build or test run ends.
-/// Repositories come from the "projects.paths" option. CI uses the GitHub REST API; a token is optional
-/// (public repositories work without one; with one, private repositories and review requests work too).
+/// Repositories come from the "projects.paths" option. CI and review requests go through the gh CLI login
+/// (Isle never sees a GitHub token); without gh, or with setup.git not github, GitHub CI shows nothing.
 /// </summary>
 public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
 {
@@ -22,7 +21,6 @@ public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
 
     BuildWatcher? _builds;
     DispatcherTimer? _buildTimer, _ciTimer, _pillTimer;
-    HttpClient? _http;
     readonly Dictionary<string, CiRun?> _lastRuns = [];
     readonly SemaphoreSlim _gate = new(1, 1);
 
@@ -32,7 +30,6 @@ public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
         Settings.Current.Opt("projects.paths").Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Where(Directory.Exists).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
-    static string Token() => Secret.Unprotect(Settings.Current.Opt("projects.githubToken"));
     static string GitLabToken() => Secret.Unprotect(Settings.Current.Opt("gitlab.token")) is { Length: > 0 } t ? t : GitHosts.GlabConfigToken(GitHosts.GitLabHost());
     readonly Dictionary<string, List<BuildRun>> _history = BuildHistory.Load(Isle.Core.Paths.File("builds.json"));
     HttpClient? _gl;
@@ -111,7 +108,7 @@ public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
                 CiRun? ci = null;
                 if (withCi && status is { Branch: not "detached" })
                 {
-                    if (github is not null) ci = await LatestRunAsync(github, status.Branch, ct).ConfigureAwait(false);
+                    if (github is not null && GitHosts.Provider() == "github") ci = await LatestRunAsync(github, status.Branch, ct).ConfigureAwait(false);
                     else if (gitlab is not null) ci = await GitLabPipelineAsync(gitlab, status.Branch, ct).ConfigureAwait(false);
                 }
                 repos.Add(new Repo(path, System.IO.Path.GetFileName(path.TrimEnd('\\', '/')), status, github, ci, gitlab));
@@ -123,10 +120,10 @@ public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
 
     async Task<CiRun?> LatestRunAsync(string ownerRepo, string branch, CancellationToken ct)
     {
-        var (status, body) = await GetAsync($"https://api.github.com/repos/{ownerRepo}/actions/runs?per_page=1&branch={Uri.EscapeDataString(branch)}", ct).ConfigureAwait(false);
-        if (status != 200) return null;
-        try { return RepoParse.LatestRun(body); }
-        catch (System.Text.Json.JsonException) { return null; }
+        var (code, json) = await Cli.RunAsync("gh", ["run", "list", "-R", ownerRepo, "-b", branch, "-L", "1", "--json", "databaseId,name,status,conclusion,updatedAt,url"], null, TimeSpan.FromSeconds(20), ct).ConfigureAwait(false);
+        if (code != 0) return null; // gh missing, not logged in or offline: same as "no CI"
+        try { return RepoParse.LatestRun(json); }
+        catch (Exception ex) when (ex is System.Text.Json.JsonException or KeyNotFoundException or InvalidOperationException) { return null; }
     }
 
     /// <summary>PRs/MRs waiting on the user; null when no host is chosen or it is unreachable. GitHub goes through the gh CLI login (Isle never sees a token).</summary>
@@ -183,33 +180,6 @@ public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
         }
     }
 
-    async Task<(int Status, string Body)> GetAsync(string url, CancellationToken ct)
-    {
-        _http ??= CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        var token = Token();
-        if (token.Length > 0) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        try
-        {
-            using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
-            return ((int)response.StatusCode, await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false));
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !ct.IsCancellationRequested)
-        {
-            Logger.Warn($"github: {ex.GetType().Name}");
-            return (0, "");
-        }
-    }
-
-    static HttpClient CreateClient()
-    {
-        var c = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
-        c.DefaultRequestHeaders.UserAgent.ParseAdd("Isle/1.0 (Windows desktop overlay)");
-        c.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
-        c.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
-        return c;
-    }
-
     void Announce(string text, string brush, string? url)
     {
         island.Pill.Set(new PillItem
@@ -246,8 +216,6 @@ public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
         island.RemoveTab(TabId);
         _builds?.Dispose();
         _builds = null;
-        _http?.Dispose();
-        _http = null;
         _gl?.Dispose();
         _gl = null;
         _lastRuns.Clear();

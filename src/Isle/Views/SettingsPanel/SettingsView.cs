@@ -210,7 +210,6 @@ public sealed class SettingsView : Grid, ITabView
         OptionGroup("projects");
         Row("set.projectsPaths", OptText("projects.paths", @"C:\Users\me\Projects\app", "projects"), "set.projectsPaths.hint", wide: true);
         Row("set.projectsBuilds", OptSwitch("projects.builds", true, restart: "projects"), "set.projectsBuilds.hint");
-        Row("set.projectsToken", SecretField("projects.githubToken", restart: "projects"), "set.projectsToken.hint");
         Row("set.gitlabHost", OptText("gitlab.host", "gitlab.com", "projects", "gitlab.com"), "set.gitlabHost.hint");
         Row("set.gitlabToken", SecretField("gitlab.token", restart: "projects"), "set.gitlabToken.hint");
 
