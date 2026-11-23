@@ -45,7 +45,7 @@ public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
             Builds: () => _history.OrderByDescending(h => h.Value.Count).Take(2).Select(h => (h.Key, (IReadOnlyList<BuildRun>)h.Value.ToList())).ToList(),
             Fetch: GitHosts.FetchAsync,
             Pull: GitHosts.PullAsync,
-            Configure: () => App.OpenSettings("options"))), 97));
+            Configure: () => App.OpenSettings("options"))), 98));
 
         if (Settings.Current.OptBool("projects.builds", true))
         {
@@ -164,7 +164,7 @@ public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
     {
         var token = GitLabToken();
         if (token.Length == 0) return null;
-        _gl ??= new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+        _gl ??= new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(15) };
         using var request = new HttpRequestMessage(HttpMethod.Get, $"https://{GitHosts.GitLabHost()}/api/v4{api}");
         request.Headers.Add("PRIVATE-TOKEN", token);
         try

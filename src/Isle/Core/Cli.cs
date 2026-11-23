@@ -7,7 +7,7 @@ namespace Isle.Core;
 /// <summary>Runs a console tool with no window and captures stdout; a timeout or missing tool gives exit code -1.</summary>
 public static class Cli
 {
-    public static async Task<(int Code, string Output)> RunAsync(string exe, IEnumerable<string> args, string? workingDirectory, TimeSpan timeout, CancellationToken ct = default)
+    public static async Task<(int Code, string Output)> RunAsync(string exe, IEnumerable<string> args, string? workingDirectory, TimeSpan timeout, CancellationToken ct = default, IReadOnlyDictionary<string, string>? env = null)
     {
         var info = new ProcessStartInfo(exe)
         {
@@ -16,6 +16,7 @@ public static class Cli
             WorkingDirectory = workingDirectory ?? "",
         };
         foreach (var a in args) info.ArgumentList.Add(a);
+        if (env is not null) foreach (var (k, v) in env) info.Environment[k] = v;
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(timeout);
         Process? p = null;

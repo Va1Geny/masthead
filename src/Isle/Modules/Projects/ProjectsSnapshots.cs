@@ -42,7 +42,7 @@ static class ProjectsSnapshots
         var view = new ProjectsView(new ProjectsActions(_ => Task.FromResult(repos), _ => Task.FromResult(reviews), () => builds ?? [], (_, _) => Task.FromResult(true), (_, _) => Task.FromResult(PullResult.UpToDate), () => { }));
         view.Show(repos);
         view.ShowReviews(reviews, builds);
-        w.AddTab(new TabInfo(ProjectsModule.TabId, "tab.projects", "Icon.Branch", () => view, 97));
+        w.AddTab(new TabInfo(ProjectsModule.TabId, "tab.projects", "Icon.Branch", () => view, 98));
         w.Expand(ProjectsModule.TabId);
     }
 

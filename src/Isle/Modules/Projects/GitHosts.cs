@@ -15,7 +15,7 @@ public enum PullResult { Updated, UpToDate, Diverged, NoUpstream, Failed }
 public static partial class GitHosts
 {
     /// <summary>The chosen git host ("github" when never asked, so existing setups keep working). "none" keeps every network feature off.</summary>
-    public static string Provider() => Settings.Current.Opt("setup.git", "github");
+    public static string Provider() => Settings.Current.Opt("setup.git", "none");
     public static string GitLabHost() => Settings.Current.Opt("gitlab.host", "gitlab.com").Trim().TrimEnd('/');
 
     /// <summary>Output of <c>gh search prs --json number,title,url,repository,author</c>.</summary>
@@ -103,8 +103,10 @@ public static partial class GitHosts
     public static PullPlan Plan(RepoStatus s) =>
         !s.HasUpstream ? PullPlan.NoUpstream : s.Behind == 0 ? PullPlan.UpToDate : s.Ahead > 0 ? PullPlan.Diverged : PullPlan.FastForward;
 
+    static readonly Dictionary<string, string> NoPrompt = new() { ["GIT_TERMINAL_PROMPT"] = "0" };
+
     public static async Task<bool> FetchAsync(string path, CancellationToken ct) =>
-        (await Cli.RunAsync("git", ["-C", path, "fetch"], null, TimeSpan.FromSeconds(60), ct).ConfigureAwait(false)).Code == 0;
+        (await Cli.RunAsync("git", ["-C", path, "fetch"], null, TimeSpan.FromSeconds(60), ct, NoPrompt).ConfigureAwait(false)).Code == 0;
 
     /// <summary>Fetch, then <c>pull --ff-only</c> only when that is a fast-forward. Never merges or rebases.</summary>
     public static async Task<PullResult> PullAsync(string path, CancellationToken ct)
@@ -118,7 +120,7 @@ public static partial class GitHosts
             case PullPlan.UpToDate: return PullResult.UpToDate;
             case PullPlan.Diverged: return PullResult.Diverged;
         }
-        var (pc, _) = await Cli.RunAsync("git", ["-C", path, "pull", "--ff-only"], null, TimeSpan.FromSeconds(60), ct).ConfigureAwait(false);
+        var (pc, _) = await Cli.RunAsync("git", ["-C", path, "pull", "--ff-only"], null, TimeSpan.FromSeconds(60), ct, NoPrompt).ConfigureAwait(false);
         return pc == 0 ? PullResult.Updated : PullResult.Failed;
     }
 }
@@ -146,17 +148,17 @@ public static class BuildHistory
         return string.Concat(runs.Select(r => "▁▂▃▄▅▆▇█"[hi - lo < 0.5 ? 0 : (int)Math.Round((r.Seconds - lo) / (hi - lo) * 7)]));
     }
 
-    public static string Secs(double s) => s < 90 ? $"{s.ToString("0", CultureInfo.InvariantCulture)} s" : $"{(int)(s / 60)} min {(int)(s % 60)} s";
+    public static string Secs(double s) => s < 90 ? Strings.T("set.seconds", s.ToString("0", CultureInfo.InvariantCulture)) : Strings.T("projects.minSec", (int)(s / 60), (int)(s % 60));
 
     public static Dictionary<string, List<BuildRun>> Load(string file)
     {
         try { return JsonSerializer.Deserialize<Dictionary<string, List<BuildRun>>>(File.ReadAllText(file)) ?? []; }
-        catch (Exception ex) when (ex is IOException or JsonException) { return []; }
+        catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException) { return []; }
     }
 
     public static void Save(string file, Dictionary<string, List<BuildRun>> h)
     {
-        try { File.WriteAllText(file, JsonSerializer.Serialize(h)); }
-        catch (IOException) { }
+        try { JsonStore.WriteAtomic(file, JsonSerializer.Serialize(h)); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
     }
 }

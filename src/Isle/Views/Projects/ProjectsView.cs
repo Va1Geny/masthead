@@ -53,6 +53,7 @@ public sealed class ProjectsView : Grid, ITabView
     {
         _timer?.Stop();
         _cts?.Cancel();
+        _msg.Visibility = Visibility.Collapsed;
     }
 
     async void OnTick(object? sender, EventArgs e)
