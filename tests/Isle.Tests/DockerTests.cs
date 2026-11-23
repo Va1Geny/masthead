@@ -98,6 +98,42 @@ public class DockerTests
         Assert.Equal("12 MB", DockerParse.Size(12L << 20));
     }
 
+    static byte[] LogFrame(byte stream, string s) { var b = Encoding.UTF8.GetBytes(s); return [stream, 0, 0, 0, 0, 0, (byte)(b.Length >> 8), (byte)b.Length, .. b]; }
+
+    [Fact]
+    public void Follow_demux_framed_stream_split_at_every_byte_gives_the_same_lines()
+    {
+        // a stdout line continues across frames, and the stderr frame in between does not cut it
+        var all = LogFrame(1, "one\ntw").Concat(LogFrame(2, "err\r\n")).Concat(LogFrame(1, "o é\nthree")).ToArray();
+        var d = new LogDemux();
+        var lines = new List<string>();
+        foreach (var b in all) lines.AddRange(d.Push([b]));
+        Assert.Equal(["one", "err", "two é"], lines);
+        Assert.Equal(["three"], d.Flush());
+        Assert.Equal(lines, new LogDemux().Push(all));
+    }
+
+    [Fact]
+    public void Follow_demux_keeps_partial_header_payload_and_utf8_until_complete()
+    {
+        var d = new LogDemux();
+        var f = LogFrame(1, "héllo\n");
+        Assert.Empty(d.Push(f.AsSpan(0, 3)));   // not even a full header
+        Assert.Empty(d.Push(f.AsSpan(3, 7)));   // header done, payload partial (splits the é? bytes 8.. are payload)
+        Assert.Equal(["héllo"], d.Push(f.AsSpan(10)));
+    }
+
+    [Fact]
+    public void Follow_demux_tty_text_split_mid_line_and_mid_character()
+    {
+        var d = new LogDemux();
+        var b = Encoding.UTF8.GetBytes("ok é\nnext\n");
+        Assert.Empty(d.Push(b.AsSpan(0, 4)));
+        Assert.Empty(d.Push(b.AsSpan(4, 1)));   // first byte of é
+        Assert.Equal(["ok é", "next"], d.Push(b.AsSpan(5)));
+        Assert.Equal(["abc"], new LogDemux().Push("abc\n"u8)); // short first chunk is still plain text
+    }
+
     [Fact]
     public void Logs_demux_framed_streams_and_pass_tty_text_through()
     {

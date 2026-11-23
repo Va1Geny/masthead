@@ -18,6 +18,11 @@ public sealed class DockerView : Grid, ITabView
     readonly Button _prune;
     DiskUsage? _df;
     string? _confirm; // "stop:<id>" or "down:<project>": the second click does it
+    const int MaxLogLines = 500;
+    readonly List<string> _log = [];
+    CancellationTokenSource? _logCts;
+    TextBlock? _logText;
+    ScrollViewer? _logScroll;
 
     public DockerView(DockerModule m, IslandWindow island)
     {
@@ -39,6 +44,7 @@ public sealed class DockerView : Grid, ITabView
         _overlay.SetResourceReference(Border.BackgroundProperty, "BgBrush");
         SetRowSpan(_overlay, 2);
         Children.Add(_overlay);
+        Unloaded += (_, _) => StopLogs();
     }
 
     public void OnShown()
@@ -65,7 +71,7 @@ public sealed class DockerView : Grid, ITabView
 
     internal void Render(DiskUsage? df)
     {
-        if (!_m.Up) df = null;
+        if (!_m.Up) { df = null; if (_logCts is not null) Hide(); } // engine down: the log stream is dead, close its view
         _df = df;
         _prune.Visibility = _m.Up ? Visibility.Visible : Visibility.Collapsed;
         _disk.Text = df is null ? "" : Strings.T("docker.disk", DockerParse.Size(df.Images), DockerParse.Size(df.Volumes), DockerParse.Size(df.BuildCache));
@@ -160,20 +166,52 @@ public sealed class DockerView : Grid, ITabView
         _island.ShowToast(Strings.T(code == 0 ? "docker.composeDone" : "docker.composeFailed", project));
     }
 
+    /// <summary>Opens the log view and follows the container's log until the view closes (see <see cref="StopLogs"/>).</summary>
     async Task Logs(Box b)
     {
-        try { ShowLogs(b.Name, await _m.Api!.LogsAsync(b.Id)); }
-        catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException)
-        { _island.ShowToast(Strings.T("docker.failed", b.Name)); }
+        ShowLogs(b.Name, "");
+        var cts = _logCts = new CancellationTokenSource();
+        try
+        {
+            await _m.Api!.FollowLogsAsync(b.Id, lines => Dispatcher.BeginInvoke(() => { if (!cts.IsCancellationRequested) AppendLog(lines); }), cts.Token);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException or ObjectDisposedException)
+        { if (!cts.IsCancellationRequested && _log.Count == 0) _island.ShowToast(Strings.T("docker.failed", b.Name)); }
+    }
+
+    /// <summary>Cancels the followed stream: view closed or replaced, tab hidden, engine down. The module stopping disposes the api, which ends it too.</summary>
+    void StopLogs()
+    {
+        var cts = _logCts;
+        _logCts = null;
+        _logText = null;
+        _logScroll = null;
+        cts?.Cancel();
+        cts?.Dispose();
     }
 
     internal void ShowLogs(string name, string text)
     {
-        var t = new TextBlock { Text = text.Length == 0 ? Strings.T("docker.noLogs") : text.TrimEnd(), FontSize = 11.5, TextWrapping = TextWrapping.Wrap };
+        var t = new TextBlock { FontSize = 11.5, TextWrapping = TextWrapping.Wrap };
         t.SetResourceReference(TextBlock.FontFamilyProperty, "MonoFont");
         t.SetResourceReference(TextBlock.ForegroundProperty, "FgBrush");
         var scroll = new ScrollViewer { Content = t, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Focusable = true };
-        Overlay(Strings.T("docker.logsTitle", name), scroll);
+        Overlay(Strings.T("docker.logsTitle", name), scroll); // also stops the previous stream
+        (_logText, _logScroll) = (t, scroll);
+        _log.Clear();
+        AppendLog(text.Length == 0 ? [] : text.TrimEnd().Split('\n'));
+    }
+
+    /// <summary>UI thread. Keeps the last <see cref="MaxLogLines"/> lines; follows the end only when the view was already at the bottom.</summary>
+    internal void AppendLog(IReadOnlyList<string> lines)
+    {
+        if (_logText is not { } t || _logScroll is not { } scroll) return;
+        var atBottom = scroll.VerticalOffset >= scroll.ScrollableHeight - 1;
+        _log.AddRange(lines);
+        if (_log.Count > MaxLogLines) _log.RemoveRange(0, _log.Count - MaxLogLines);
+        t.Text = _log.Count == 0 ? Strings.T("docker.noLogs") : string.Join('\n', _log);
+        if (!atBottom) return;
+        scroll.UpdateLayout();
         scroll.ScrollToEnd();
     }
 
@@ -209,10 +247,11 @@ public sealed class DockerView : Grid, ITabView
 
     void Overlay(string title, FrameworkElement body)
     {
+        StopLogs();
         var close = Ui.IconAction("Icon.Close", "ai.close", Hide, "docker action", "FgBrush");
         _overlay.Child = Ui.OverlayFrame(new TextBlock { Text = title, TextTrimming = TextTrimming.CharacterEllipsis }, body, close, null, 6);
         _overlay.Visibility = Visibility.Visible;
     }
 
-    void Hide() { _overlay.Visibility = Visibility.Collapsed; _overlay.Child = null; }
+    void Hide() { StopLogs(); _overlay.Visibility = Visibility.Collapsed; _overlay.Child = null; }
 }

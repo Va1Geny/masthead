@@ -49,6 +49,15 @@ public class SetupTests
     }
 
     [Fact]
+    public void Default_limit_follows_the_item_list_so_every_item_can_be_on()
+    {
+        Assert.Equal(SetupModel.Items.Length, SetupModel.Limit);
+        var all = SetupModel.Items.Select(i => i.Id).ToHashSet();
+        var allButOne = all.Skip(1).ToHashSet();
+        Assert.True(SetupModel.CanTick(allButOne, all.First()));
+    }
+
+    [Fact]
     public void Apply_writes_module_switches_and_answers_only()
     {
         var s = new Settings();

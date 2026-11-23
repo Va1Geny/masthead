@@ -24,7 +24,21 @@ public sealed class ServersModule(IslandWindow island) : IModule, IDisposable
     /// <summary>Latest watch results (null problems = not checked yet); read by the tab.</summary>
     public static List<(WatchItem Item, List<string>? Bad)> Results { get; private set; } = [];
 
-    static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(8) };
+    /// <summary>Re-runs the checks now (set while the module runs); the tab awaits it after editing the watch list.</summary>
+    public static Func<Task>? Recheck { get; private set; }
+
+    /// <summary>Stores the watch list in "servers.watch", keeps known results for kept entries and re-checks.</summary>
+    public static async Task SaveWatch(List<WatchItem> items)
+    {
+        var s = Settings.Current;
+        s.SetOpt("servers.watch", WatchItem.Format(items));
+        s.Save("Options");
+        var old = Results;
+        Results = items.Select(i => (i, old.FirstOrDefault(r => r.Item == i).Bad)).ToList();
+        if (Recheck is { } r) await r();
+    }
+
+    static readonly HttpClient Http =new() { Timeout = TimeSpan.FromSeconds(8) };
     DispatcherTimer? _timer;
     bool _running, _busy;
 
@@ -45,6 +59,7 @@ public sealed class ServersModule(IslandWindow island) : IModule, IDisposable
     public void Start()
     {
         _running = true;
+        Recheck = RefreshAsync;
         island.AddTab(new TabInfo(TabId, "tab.servers", "Icon.Globe", () => new ServersView(Load, island), 99));
         _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMinutes(5) };
         _timer.Tick += async (_, _) => await RefreshAsync();
@@ -115,6 +130,7 @@ public sealed class ServersModule(IslandWindow island) : IModule, IDisposable
     public void Stop()
     {
         _running = false;
+        Recheck = null;
         _timer?.Stop();
         _timer = null;
         island.Pill.Remove(SsoId);
@@ -135,6 +151,7 @@ static class ServersSnapshots
     public static void Register(Dictionary<string, Action<IslandWindow>> states)
     {
         states["servers-tab"] = w => Tab(w, Demo, [(new WatchItem("https://example.com", true, true, false), []), (new WatchItem("https://status.example.com", true, false, true), ["status minor"])]);
+        states["servers-watch"] = w => Tab(w, new([], [], null, []), [(new WatchItem("https://example.com", true, true, false), []), (new WatchItem("self-signed.example.com", false, true, false), ["untrusted cert (chain)"]), (new WatchItem("https://status.example.com", true, false, true), ["status minor"])]);
         states["servers-empty"] = w => Tab(w, new([], [], null, []), []);
         states["servers-sso"] = w => w.Pill.Set(ServersModule.SsoPill(DateTimeOffset.Now.AddMinutes(20)));
         states["servers-sso-expired"] = w => w.Pill.Set(ServersModule.SsoPill(DateTimeOffset.Now.AddMinutes(-5)));
