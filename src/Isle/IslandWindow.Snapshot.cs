@@ -5,7 +5,7 @@ using Isle.Core;
 
 namespace Isle;
 
-// Debug renderer: `Isle.exe --snapshot <state|all> <out.png|dir> [--theme Dark|Light] [--lang en|uk] [--scale 1.25]`.
+// Debug renderer: `Isle.exe --snapshot <state|all> <out.png|dir> [--theme Dark|Light] [--lang en|uk] [--scale 1.25] [--backdrop 0d1117]`.
 // Builds the island off-screen in snapshot mode (no hooks/timers), puts it into the named state and saves a PNG.
 public partial class IslandWindow
 {
@@ -21,7 +21,7 @@ public partial class IslandWindow
     {
         try
         {
-            if (args.Length < 3) { Console.Error.WriteLine("usage: --snapshot <state|all> <out.png|dir> [--theme Dark|Light] [--lang en|uk] [--scale s]"); return 2; }
+            if (args.Length < 3) { Console.Error.WriteLine("usage: --snapshot <state|all> <out.png|dir> [--theme Dark|Light] [--lang en|uk] [--scale s] [--backdrop rrggbb]"); return 2; }
             Modules.Agents.AgentSnapshots.Register(SnapshotStates);
             Modules.Media.MediaSnapshots.Register(SnapshotStates);
             Modules.SystemMonitor.SystemMonitorSnapshots.Register(SnapshotStates);
@@ -38,6 +38,8 @@ public partial class IslandWindow
             var output = args[2];
             string? theme = Arg(args, "--theme"), lang = Arg(args, "--lang");
             var scale = double.TryParse(Arg(args, "--scale"), System.Globalization.CultureInfo.InvariantCulture, out var sc) ? sc : 1.0;
+            // mid grey by default so both themes and the shadow are visible; docs use the GitHub dark page colour
+            var backdrop = Arg(args, "--backdrop") is { } hex ? (Color)ColorConverter.ConvertFromString("#" + hex.TrimStart('#')) : Color.FromRgb(0x7A, 0x84, 0x90);
 
             if (state == "all")
             {
@@ -45,11 +47,11 @@ public partial class IslandWindow
                 foreach (var name in SnapshotStates.Keys)
                 foreach (var th in new[] { "Dark", "Light" })
                 foreach (var lg in new[] { "en", "uk" })
-                    RenderOne(name, Path.Combine(output, $"{name}.{th.ToLowerInvariant()}.{lg}.png"), th, lg, scale);
+                    RenderOne(name, Path.Combine(output, $"{name}.{th.ToLowerInvariant()}.{lg}.png"), th, lg, scale, backdrop);
                 return 0;
             }
             if (!SnapshotStates.ContainsKey(state)) { Console.Error.WriteLine($"unknown state '{state}'. Known: {string.Join(", ", SnapshotStates.Keys)}"); return 2; }
-            RenderOne(state, output, theme ?? "Dark", lang ?? "en", scale);
+            RenderOne(state, output, theme ?? "Dark", lang ?? "en", scale, backdrop);
             return 0;
         }
         catch (Exception ex)
@@ -66,7 +68,7 @@ public partial class IslandWindow
         return i >= 0 && i + 1 < args.Length ? args[i + 1] : null;
     }
 
-    static void RenderOne(string state, string path, string theme, string lang, double scale)
+    static void RenderOne(string state, string path, string theme, string lang, double scale, Color backdropColor)
     {
         // in-memory only: snapshot never saves settings
         var s = Settings.Current;
@@ -91,10 +93,9 @@ public partial class IslandWindow
 
         const double dpi = 192; // 2× so details are visible when inspecting
         var bmp = new RenderTargetBitmap((int)(size.Width * 2), (int)(size.Height * 2), dpi, dpi, PixelFormats.Pbgra32);
-        // checkerboard-free backdrop: mid grey so both themes and the shadow are visible
         var backdrop = new DrawingVisual();
         using (var dc = backdrop.RenderOpen())
-            dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0x7A, 0x84, 0x90)), null, new Rect(size));
+            dc.DrawRectangle(new SolidColorBrush(backdropColor), null, new Rect(size));
         bmp.Render(backdrop);
         bmp.Render(root);
 
