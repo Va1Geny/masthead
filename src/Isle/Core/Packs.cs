@@ -10,7 +10,7 @@ namespace Isle.Core;
 /// </summary>
 static class Packs
 {
-    static readonly string[] Names = ["Music", "Home", "Dev"];
+    internal static readonly string[] Names = ["Music", "Home", "Dev"];
     static bool _loaded;
 
     /// <summary>Loads once; later calls do nothing (a debug flag may load the packs before start-up does).</summary>
@@ -28,16 +28,21 @@ static class Packs
                 var path = Path.Combine(AppContext.BaseDirectory, $"Isle.{name}.dll");
                 if (!File.Exists(path)) continue;
                 var pack = Assembly.LoadFrom(path);
-                var theirs = Version(pack);
-                if (mine != theirs) { Logger.Warn($"pack {name} skipped: built from {theirs}, Isle is {mine}"); continue; }
-                var missing = pack.GetReferencedAssemblies().Select(r => r.Name ?? "").FirstOrDefault(n => n.StartsWith("Isle.", StringComparison.Ordinal) && !registered.Contains(n));
-                if (missing is not null) { Logger.Warn($"pack {name} skipped: needs {missing}"); continue; }
+                if (SkipReason(mine, Version(pack), pack.GetReferencedAssemblies().Select(r => r.Name ?? ""), registered) is { } why) { Logger.Warn($"pack {name} skipped: {why}"); continue; }
                 pack.GetType($"Isle.{name}.Pack", throwOnError: true)!.GetMethod("Register")!.Invoke(null, null);
                 registered.Add($"Isle.{name}");
                 Logger.Info($"pack {name} loaded");
             }
             catch (Exception ex) { Logger.Error($"pack {name}", ex is TargetInvocationException { InnerException: { } inner } ? inner : ex); }
         }
+    }
+
+    /// <summary>Why a pack must not load (built from another commit, or needs an Isle.* pack that is not registered), else null.</summary>
+    internal static string? SkipReason(string? mine, string? theirs, IEnumerable<string> references, ISet<string> registered)
+    {
+        if (mine != theirs) return $"built from {theirs}, Isle is {mine}";
+        var missing = references.FirstOrDefault(n => n.StartsWith("Isle.", StringComparison.Ordinal) && !registered.Contains(n));
+        return missing is null ? null : $"needs {missing}";
     }
 
     static string? Version(Assembly a) => a.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
