@@ -1,5 +1,6 @@
 # Pushing a tag like v1.1.0 builds, tests and publishes a GitHub release with both packages.
 # The tag must match <Version> in Directory.Build.props.
+# Actions are pinned to full commit SHAs (Dependabot keeps them current).
 name: Release
 
 on:
@@ -7,14 +8,18 @@ on:
     tags: ['v*']
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   release:
     runs-on: windows-latest
+    permissions:
+      contents: write # gh release create
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           dotnet-version: 10.0.x
       - name: Check the tag matches the version
@@ -25,13 +30,14 @@ jobs:
       - name: Build, test and publish
         shell: pwsh
         run: ./scripts/build.ps1
+      # The zips are made from the two publish folders only and uploaded by exact name (never a glob over the checkout).
       - name: Zip the packages
         shell: pwsh
         run: |
-          Compress-Archive dist/Isle/* "Isle-$env:GITHUB_REF_NAME-win-x64.zip"
-          Compress-Archive dist/Isle-selfcontained/* "Isle-$env:GITHUB_REF_NAME-win-x64-selfcontained.zip"
+          Compress-Archive -Path dist/Isle/* -DestinationPath "dist/Isle-$env:GITHUB_REF_NAME-win-x64.zip"
+          Compress-Archive -Path dist/Isle-selfcontained/* -DestinationPath "dist/Isle-$env:GITHUB_REF_NAME-win-x64-selfcontained.zip"
       - name: Publish the release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create $env:GITHUB_REF_NAME (Get-ChildItem Isle-*.zip) --title "Isle $env:GITHUB_REF_NAME" --generate-notes
+        run: gh release create $env:GITHUB_REF_NAME "dist/Isle-$env:GITHUB_REF_NAME-win-x64.zip" "dist/Isle-$env:GITHUB_REF_NAME-win-x64-selfcontained.zip" --title "Isle $env:GITHUB_REF_NAME" --generate-notes
