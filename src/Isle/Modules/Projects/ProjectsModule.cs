@@ -107,10 +107,14 @@ public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
                 var status = code == 0 ? RepoParse.Status(porcelain) : null;
                 var (rc, remote) = await Cli.RunAsync("git", ["-C", path, "remote", "get-url", "origin"], null, TimeSpan.FromSeconds(5), ct).ConfigureAwait(false);
                 var github = rc == 0 ? RepoParse.GitHub(remote) : null;
+                var gitlab = rc == 0 && GitHosts.Provider() == "gitlab" ? GitHosts.GitLabPath(remote, GitHosts.GitLabHost()) : null;
                 CiRun? ci = null;
-                if (withCi && github is not null && status is { Branch: not "detached" })
-                    ci = await LatestRunAsync(github, status.Branch, ct).ConfigureAwait(false);
-                repos.Add(new Repo(path, System.IO.Path.GetFileName(path.TrimEnd('\\', '/')), status, github, ci));
+                if (withCi && status is { Branch: not "detached" })
+                {
+                    if (github is not null) ci = await LatestRunAsync(github, status.Branch, ct).ConfigureAwait(false);
+                    else if (gitlab is not null) ci = await GitLabPipelineAsync(gitlab, status.Branch, ct).ConfigureAwait(false);
+                }
+                repos.Add(new Repo(path, System.IO.Path.GetFileName(path.TrimEnd('\\', '/')), status, github, ci, gitlab));
             }
             return repos;
         }
