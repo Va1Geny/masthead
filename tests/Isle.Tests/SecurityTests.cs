@@ -74,6 +74,18 @@ public class SecurityTests
     }
 
     [Fact]
+    public void Shell_hook_commands_refuse_paths_a_shell_would_interpret()
+    {
+        Assert.Throws<NotSupportedException>(() => HookInstaller.Merge(new JsonObject(), "codex", @"C:\Users\a&b\AppData\Roaming\Isle\bin\Isle.Hook.exe", 60));
+        Assert.Throws<NotSupportedException>(() => HookInstaller.Merge(new JsonObject(), "gemini", @"C:\Users\o'neil\Isle\bin\Isle.Hook.exe", 60));
+        var plain = new JsonObject();
+        HookInstaller.Merge(plain, "codex", @"C:\Users\RUNNER~1\Isle\bin\Isle.Hook.exe", 60);
+        Assert.Equal(@"C:\Users\RUNNER~1\Isle\bin\Isle.Hook.exe codex --timeout 60", (string?)plain["hooks"]!["PermissionRequest"]![0]!["hooks"]![0]!["command"]);
+        // the exec form (Claude Code) runs no shell, so any path is fine there
+        HookInstaller.Merge(new JsonObject(), "claude", @"C:\Users\a&b\AppData\Roaming\Isle\bin\Isle.Hook.exe", 60);
+    }
+
+    [Fact]
     public async Task Hook_pipe_drops_clients_from_other_machines()
     {
         var name = "Isle.Agents.test." + Guid.NewGuid().ToString("N");

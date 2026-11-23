@@ -125,10 +125,10 @@ public static class HookInstaller
     public static string? Install(HookTarget t, int timeoutSeconds, string sourceDir, DateTime now)
     {
         var root = File.Exists(t.ConfigPath) ? ReadRoot(t.ConfigPath) ?? new JsonObject() : new JsonObject();
-        var exe = CopyHelper(sourceDir);
+        Merge(root, t.Agent, InstalledExe, timeoutSeconds); // in memory: a refused helper path throws before anything is written
+        CopyHelper(sourceDir);
         HookProtocol.WritePrivate(HookProtocol.TrustedPathFile(Paths.Root), Environment.ProcessPath!);
         var backup = Backup(t.ConfigPath, now);
-        Merge(root, t.Agent, exe, timeoutSeconds);
         JsonStore.WriteAtomic(t.ConfigPath, root.ToJsonString(Write) + Environment.NewLine);
         Logger.Info($"agent hooks installed for {t.Agent}");
         return backup;
@@ -185,23 +185,27 @@ public static class HookInstaller
 
     static JsonObject Handler(string agent, string exe, bool waits, int timeoutSeconds)
     {
-        if (agent == "gemini")
-        {
-            // Gemini runs `command` through a shell; timeout is in milliseconds.
-            var cmd = (exe.Contains(' ') ? $"\"{exe}\"" : exe) + " gemini --async";
-            return new JsonObject { ["type"] = "command", ["command"] = cmd, ["timeout"] = 10_000 };
-        }
-        if (agent == "codex")
-        {
-            // Codex runs `command` through a shell; quote the path only when needed.
-            var cmd = (exe.Contains(' ') ? $"\"{exe}\"" : exe) + $" codex --timeout {timeoutSeconds}";
-            return new JsonObject { ["type"] = "command", ["command"] = cmd, ["timeout"] = waits ? timeoutSeconds + 30 : 3 }; // Codex caps SessionEnd at 3 s
-        }
+        if (agent == "gemini") // timeout in milliseconds
+            return new JsonObject { ["type"] = "command", ["command"] = ShellCommand(exe, "gemini --async"), ["timeout"] = 10_000 };
+        if (agent == "codex") // Codex caps SessionEnd at 3 s
+            return new JsonObject { ["type"] = "command", ["command"] = ShellCommand(exe, $"codex --timeout {timeoutSeconds}"), ["timeout"] = waits ? timeoutSeconds + 30 : 3 };
         // Claude Code exec form: no shell, so the path needs no quoting in Git Bash or PowerShell.
         var args = waits ? new JsonArray("claude", "--timeout", timeoutSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture)) : new JsonArray("claude", "--async");
         var h = new JsonObject { ["type"] = "command", ["command"] = exe, ["args"] = args, ["timeout"] = waits ? timeoutSeconds + 30 : 10 };
         if (!waits) h["async"] = true;
         return h;
+    }
+
+    /// <summary>
+    /// Codex and Gemini run <c>command</c> through a shell (cmd, PowerShell or sh). The path is quoted only when it has a space, as before
+    /// (an unquoted path also works in PowerShell), and a path with any character one of those shells would interpret, quoted or not
+    /// (&amp; ; ' " % $ ` ( ) and so on), is refused so the hook line can never run something else. '~' only occurs inside 8.3 short names here.
+    /// </summary>
+    static string ShellCommand(string exe, string args)
+    {
+        if (!exe.All(c => char.IsLetterOrDigit(c) || c is ' ' or '\\' or ':' or '.' or '_' or '-' or '~'))
+            throw new NotSupportedException("the Isle data folder path has characters a shell would interpret; set ISLE_DATA_DIR to a plain folder path");
+        return (exe.Contains(' ') ? $"\"{exe}\"" : exe) + " " + args;
     }
 
     /// <summary>Removes handlers invoking the trusted Isle helper with supported arguments; drops groups/events left empty by that.</summary>
