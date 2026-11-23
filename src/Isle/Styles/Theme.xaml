@@ -5,7 +5,6 @@
     <!-- Isle's flat control set. Colours come from Core.Theme (DynamicResource *Brush keys). 8-px grid. -->
 
     <FontFamily x:Key="UiFont">Segoe UI Variable Text, Segoe UI Variable, Segoe UI</FontFamily>
-    <FontFamily x:Key="UiFontDisplay">Segoe UI Variable Display, Segoe UI Variable, Segoe UI</FontFamily>
     <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
     <!-- The island overrides these below 100% using its actual monitor-clamped scale. -->
     <sys:Double x:Key="CompactTargetMin">0</sys:Double>
