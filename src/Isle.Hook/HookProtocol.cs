@@ -91,13 +91,13 @@ public static class HookProtocol
         };
     }
 
-    /// <summary>Async status hooks skip the events a synchronous hook already reports.</summary>
     /// <summary>Gemini CLI event → the internal (Claude/Codex) event name; the only place that knows the difference.</summary>
     public static readonly IReadOnlyDictionary<string, string> GeminiEvents = new Dictionary<string, string>
     {
         ["BeforeAgent"] = "UserPromptSubmit", ["BeforeTool"] = "PreToolUse", ["AfterTool"] = "PostToolUse", ["AfterAgent"] = "Stop",
     };
 
+    /// <summary>Async status hooks skip the events a synchronous hook already reports.</summary>
     public static bool SkipInAsync(JsonObject input) =>
         Str(input, "hook_event_name") == "PreToolUse" && Str(input, "tool_name") == AskUserQuestion;
 
