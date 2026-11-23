@@ -27,7 +27,7 @@ One line each: decision — why.
 - UI-M1–M4 fits the rendered stage to its monitor, preserves stable display and tab choices, and measures or wraps translated labels.
 
 ## Security review
-- Links from outside data (CI runs, PRs/MRs, GitLab) go through `ProcessOps.OpenUrl`: absolute http(s) only, re-escaped. `ProcessOps.Open` is for paths and links Isle builds itself.
+- Links from outside data (CI runs, PRs/MRs, GitLab) go through `ProcessOps.OpenUrl`: absolute https only, re-escaped. `ProcessOps.Open` is for paths and links Isle builds itself.
 - The hook pipe drops clients Windows reports a computer name for: `CurrentUserOnly` does not set `PIPE_REJECT_REMOTE_CLIENTS`, and the same domain account could otherwise connect over SMB. Same-user local processes are trusted (they can edit the agents' configs anyway), so there is no extra token.
 - Isle's current directory is its own folder: tools are started by bare name and Windows searches the current directory before PATH.
 - Compose buttons only for labels compose would write (compose project name, drive-rooted local paths): any image can set those labels.

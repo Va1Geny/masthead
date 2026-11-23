@@ -85,7 +85,8 @@ public class GitHostsTests
         {
             using var p = Process.Start(new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "cmd.exe"), "/c ping -n 4 127.0.0.1 >nul") { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = dir.FullName })!;
             Assert.Equal(dir.FullName, BuildWatcher.CurrentDirectory(p.Id)?.TrimEnd('\\'), ignoreCase: true);
-            p.Kill();
+            p.Kill(true); // whole tree: the ping child also holds the cwd
+            p.WaitForExit();
         }
         finally { dir.Delete(true); }
     }

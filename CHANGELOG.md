@@ -47,7 +47,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The Docker footer clears when the engine stops; the settings dropdown follows the dark theme.
 
 ### Security
-- Links from outside data (CI, pull and merge requests, watch list) open only if they are `http` or `https`.
+- Links from outside data (CI, pull and merge requests, watch list) open only if they are `https`.
 - Compose actions run only for projects whose compose files are on a local drive.
 - Command-line tools are never picked up from the folder Isle was started in.
 - The hook pipe refuses connections from other machines.

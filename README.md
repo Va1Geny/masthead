@@ -129,7 +129,7 @@ config files, server responses) as untrusted:
 
 - The agent hook endpoint is a named pipe only your Windows account can open; connections from other machines are
   refused.
-- Links from GitHub, GitLab, CI and the watch list open only if they are `http` or `https`.
+- Links from GitHub, GitLab, CI and the watch list open only if they are `https`.
 - Command-line tools (`git`, `gh`, `docker`, `wt`…) are started with separate arguments, never through a shell, and are
   never picked up from the folder Isle was started in.
 - Agent hooks are refused for a helper path a shell could misread; the GitLab token goes only to the configured host.
