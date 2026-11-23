@@ -56,14 +56,14 @@ public class SettingsTests
         var path = dir.File("settings.json");
         var s = new Settings { Theme = "Light", Scale = 1.5, Language = "uk" };
         s.Modules["media"] = false;
-        s.SetOpt("weather.city", "Київ");
+        s.SetOpt("logs.files", "Київ");
         Assert.True(JsonStore.Save(path, s));
         var back = Settings.Load(path);
         Assert.Equal("Light", back.Theme);
         Assert.Equal(1.5, back.Scale);
         Assert.Equal("uk", back.Language);
         Assert.False(back.IsModuleEnabled("media"));
-        Assert.Equal("Київ", back.Opt("weather.city"));
+        Assert.Equal("Київ", back.Opt("logs.files"));
         Assert.False(File.Exists(path + ".tmp"));
     }
 
@@ -77,6 +77,18 @@ public class SettingsTests
         Assert.Equal("System", s.Theme);
         Assert.False(File.Exists(path));
         Assert.Single(Directory.GetFiles(dir.Path, "settings.json.bak-*"));
+    }
+
+    [Fact]
+    public void Removed_settings_keys_in_an_old_file_are_ignored()
+    {
+        using var dir = new TempDir();
+        var path = dir.File("settings.json");
+        File.WriteAllText(path, """{ "Version": 1, "Theme": "Dark", "ShowClock": true, "AutoHideEdge": true, "ClickThrough": true, "Options": { "weather.city": "Kyiv" } }""");
+        var s = Settings.Load(path);
+        Assert.Equal("Dark", s.Theme);
+        Assert.Equal("Kyiv", s.Opt("weather.city"));
+        Assert.False(File.Exists(path + ".bak"));
     }
 
     [Fact]

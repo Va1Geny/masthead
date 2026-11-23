@@ -56,7 +56,7 @@ public partial class IslandWindow
         }
     }
 
-    /// <summary>The idle pill view, so modules (weather, characters) can add their small pieces to it.</summary>
+    /// <summary>The idle pill view; Music widens it to match the mini player.</summary>
     public IdlePillView IdleView => _idleView ??= new IdlePillView();
 
     void OnPillChanged()
