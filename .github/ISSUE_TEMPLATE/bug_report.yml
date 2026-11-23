@@ -1,0 +1,72 @@
+name: Bug report
+description: Something in Isle doesn't work as expected.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please don't include tokens, hostnames, or anything private from your machine.
+        Security problems go through [SECURITY.md](https://github.com/Va1Geny/island/blob/main/SECURITY.md), not here.
+  - type: input
+    id: version
+    attributes:
+      label: Isle version
+      description: Settings → About, or the release you downloaded.
+      placeholder: "1.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      options:
+        - Framework-dependent (Isle-…-win-x64.zip)
+        - Self-contained (Isle-…-win-x64-selfcontained.zip)
+        - Built from source
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version and display scaling
+      placeholder: "Windows 11 24H2, 125%"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - Island / pill / hover / hotkey
+        - Music
+        - Agents and hooks
+        - System
+        - Ports
+        - Docker / Podman
+        - Projects / git / CI
+        - Servers
+        - Usage
+        - Setup / Settings
+        - Other
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. …
+        2. …
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: The last lines of %AppData%\Isle\log.txt around the problem (check them for private details first).
+      render: text

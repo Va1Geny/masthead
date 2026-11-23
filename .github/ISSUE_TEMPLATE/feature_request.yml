@@ -1,0 +1,34 @@
+name: Feature request
+description: Suggest an improvement for the developer edition of Isle.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Isle stays small: features that fit the developer tabs (agents, system, ports, containers, projects, servers,
+        usage) belong here. Community features (timers, notes, chat…) belong in the
+        [upstream repository](https://github.com/BKyrychenko/island).
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the situation, not the solution yet.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like Isle to do?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - label: It works without new network access, or the network access is opt-in.
+        - label: I'm willing to open a pull request for it.
