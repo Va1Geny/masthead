@@ -16,9 +16,9 @@ A small notch that hangs from the top of the screen, shows what your machine and
 
 </div>
 
-This is a Dev-focused fork of [BKyrychenko/island](https://github.com/BKyrychenko/island), the original Isle by its
-author; all credit for the island itself goes there. The upstream repository keeps the Community app (timers, notes,
-clipboard, command bar, AI chat, weather and more). This fork is one app, `Isle.exe`, with the shell, Music and the
+This is a Dev-focused fork of `BKyrychenko/island`, the original Isle by its author; all credit for the island itself
+goes there. The upstream repository, which is not public, keeps the Community app (timers, notes, clipboard, command
+bar, AI chat, weather and more). This fork is one app, `Isle.exe`, with the shell, Music and the
 developer features below, and nothing else.
 
 ## Screenshots

@@ -1,8 +1,7 @@
 # Contributing to Isle
 
 Thanks for helping. This fork is the developer edition of Isle: one `Isle.exe` with the shell, Music and the developer
-tabs. Features of the Community app (timers, notes, chat…) belong in the
-[upstream repository](https://github.com/BKyrychenko/island), not here.
+tabs. Features of the Community app (timers, notes, chat…) belong in the upstream repository, not here.
 
 ## Before you start
 

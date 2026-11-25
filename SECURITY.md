@@ -9,7 +9,6 @@ Only the latest release gets security fixes. Please update before reporting.
 Please report privately, not in a public issue:
 
 - GitHub private vulnerability reporting: the repository's **Security** tab → **Report a vulnerability**.
-- Owner: GitHub offers private vulnerability reporting for public repositories only. Turn it on (Settings → Code security) when the repository is made public, or add a private contact here.
 
 Include the Isle version, what you did, what happened and, if you can, a proof of concept. You should get an answer
 within a week.

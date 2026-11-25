@@ -6,8 +6,7 @@ body:
     attributes:
       value: |
         Isle stays small: features that fit the developer tabs (agents, system, ports, containers, projects, servers,
-        usage) belong here. Community features (timers, notes, chat…) belong in the
-        [upstream repository](https://github.com/BKyrychenko/island).
+        usage) belong here. Community features (timers, notes, chat…) belong in the upstream repository, not here.
   - type: textarea
     id: problem
     attributes:
