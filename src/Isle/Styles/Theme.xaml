@@ -32,7 +32,13 @@
 
     <Style x:Key="KeyboardFocus">
         <Setter Property="Control.Template">
-            <Setter.Value><ControlTemplate><Border BorderBrush="{DynamicResource AccentTextBrush}" BorderThickness="2" CornerRadius="8" Margin="-2" /></ControlTemplate></Setter.Value>
+            <!-- drawn inside the control: an outside ring overlapped touching neighbours and was clipped at list edges -->
+            <Setter.Value><ControlTemplate><Border BorderBrush="{DynamicResource AccentTextBrush}" BorderThickness="2" CornerRadius="8" /></ControlTemplate></Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="KeyboardFocusRound">
+        <Setter Property="Control.Template">
+            <Setter.Value><ControlTemplate><Border BorderBrush="{DynamicResource AccentTextBrush}" BorderThickness="2" CornerRadius="14" /></ControlTemplate></Setter.Value>
         </Setter>
     </Style>
 
@@ -91,6 +97,7 @@
         <Setter Property="AutomationProperties.Name" Value="{Binding ToolTip, RelativeSource={RelativeSource Self}}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Padding" Value="0" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocusRound}" />
         <Setter Property="Width" Value="28" />
         <Setter Property="Height" Value="28" />
         <Setter Property="MinWidth" Value="{DynamicResource CompactTargetMin}" />
@@ -464,8 +471,13 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToolTip">
-                    <Border Background="{DynamicResource PanelBgBrush}" BorderBrush="{DynamicResource StrokeBrush}" BorderThickness="1" CornerRadius="6" Padding="8,4">
-                        <ContentPresenter />
+                    <!-- long URLs and Ukrainian text wrap instead of running off the screen -->
+                    <Border Background="{DynamicResource PanelBgBrush}" BorderBrush="{DynamicResource StrokeBrush}" BorderThickness="1" CornerRadius="6" Padding="8,4" MaxWidth="280">
+                        <ContentPresenter>
+                            <ContentPresenter.Resources>
+                                <Style TargetType="TextBlock"><Setter Property="TextWrapping" Value="Wrap" /></Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
                     </Border>
                 </ControlTemplate>
             </Setter.Value>

@@ -58,7 +58,7 @@ public sealed class SettingsView : Grid, ITabView
         left.Children.Add(_nav);
         Children.Add(left);
 
-        var right = new Grid { Margin = new Thickness(4, 10, 10, 6) };
+        var right = new Grid { Margin = new Thickness(4, 10, 12, 20) }; // bottom 20: clear of the panel's rounded corner, like the tabs
         right.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         right.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         var top = new DockPanel { Margin = new Thickness(0, 0, 0, 4) };

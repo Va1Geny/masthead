@@ -38,7 +38,8 @@
                     <Grid.RenderTransform>
                         <ScaleTransform x:Name="PanelScale" />
                     </Grid.RenderTransform>
-                    <Grid Margin="12">
+                    <!-- bottom 20, not 12: rows at the viewport's bottom edge stay clear of the 30 px (MaxRadius) corners -->
+                    <Grid Margin="12,12,12,20">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />

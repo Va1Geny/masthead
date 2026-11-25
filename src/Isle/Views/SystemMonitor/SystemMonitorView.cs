@@ -229,7 +229,8 @@ public sealed class SystemMonitorView : Grid, ITabView, IDisposable
         void Draw(double? max)
         {
             if (max is not null) _scale = max;
-            var width = Root.ActualWidth - Root.Padding.Left - Root.Padding.Right;
+            // minus the stroke: a line as wide as the card made it wider than its slot, clipping the last card's corners
+            var width = Root.ActualWidth - Root.Padding.Left - Root.Padding.Right - _line.StrokeThickness;
             if (width <= 0 || _history.Count < 2) return;
             var top = _scale ?? Math.Max(1, _history.Max());
             var points = new PointCollection();

@@ -73,6 +73,7 @@ public sealed class UsageView : Grid, ITabView
         var bar = new DockPanel { Margin = new Thickness(2, 3, 0, 0) };
         var refresh = Ui.IconAction("Icon.Reset", "usage.refresh", () => _ = Refresh(), "usage refresh");
         refresh.IsEnabled = !_busy;
+        refresh.ToolTip = new ToolTip { Content = refresh.ToolTip, Placement = System.Windows.Controls.Primitives.PlacementMode.Left }; // below it would cover the cost rows
         DockPanel.SetDock(refresh, Dock.Right);
         bar.Children.Add(refresh);
         var status = Ui.Dim(_busy ? Strings.T("usage.scanning") : Strings.T("usage.updated", r.At.ToString("HH:mm", CultureInfo.InvariantCulture)));
