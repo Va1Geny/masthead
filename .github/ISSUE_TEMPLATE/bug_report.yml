@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in Isle doesn't work as expected.
+description: Something in Masthead doesn't work as expected.
 labels: [bug]
 body:
   - type: markdown
@@ -10,7 +10,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Isle version
+      label: Masthead version
       description: Settings → About, or the release you downloaded.
       placeholder: "1.1.0"
     validations:
@@ -20,8 +20,8 @@ body:
     attributes:
       label: Package
       options:
-        - Framework-dependent (Isle-…-win-x64.zip)
-        - Self-contained (Isle-…-win-x64-selfcontained.zip)
+        - Framework-dependent (Masthead-…-win-x64.zip)
+        - Self-contained (Masthead-…-win-x64-selfcontained.zip)
         - Built from source
     validations:
       required: true

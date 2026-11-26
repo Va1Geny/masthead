@@ -1,11 +1,11 @@
 name: Feature request
-description: Suggest an improvement for the developer edition of Isle.
+description: Suggest an improvement for the Masthead.
 labels: [enhancement]
 body:
   - type: markdown
     attributes:
       value: |
-        Isle stays small: features that fit the developer tabs (agents, system, ports, containers, projects, servers,
+        Masthead stays small: features that fit the developer tabs (agents, system, ports, containers, projects, servers,
         usage) belong here. Community features (timers, notes, chat…) belong in the upstream repository, not here.
   - type: textarea
     id: problem
@@ -17,7 +17,7 @@ body:
   - type: textarea
     id: idea
     attributes:
-      label: What would you like Isle to do?
+      label: What would you like Masthead to do?
     validations:
       required: true
   - type: textarea

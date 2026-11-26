@@ -15,7 +15,7 @@ fn main() {
         Ok(0) => (),
         Ok(code) => process::exit(code),
         Err(error) => {
-            let message = format!("Could not start Isle.exe beside the launcher.\n\n{error}");
+            let message = format!("Could not start Masthead (Isle.exe) beside the launcher.\n\n{error}");
             if wait {
                 eprintln!("{message}");
             } else {
@@ -52,7 +52,7 @@ unsafe extern "system" {
 fn show_error(message: &str) {
     const MB_ICONERROR: u32 = 0x10;
     let text: Vec<_> = message.encode_utf16().chain([0]).collect();
-    let title: Vec<_> = "Isle".encode_utf16().chain([0]).collect();
+    let title: Vec<_> = "Masthead".encode_utf16().chain([0]).collect();
     // Both strings are null-terminated and stay alive until the dialog closes.
     unsafe {
         MessageBoxW(

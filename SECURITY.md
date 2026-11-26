@@ -10,12 +10,12 @@ Please report privately, not in a public issue:
 
 - GitHub private vulnerability reporting: the repository's **Security** tab → **Report a vulnerability**.
 
-Include the Isle version, what you did, what happened and, if you can, a proof of concept. You should get an answer
+Include the Masthead version, what you did, what happened and, if you can, a proof of concept. You should get an answer
 within a week.
 
 ## Scope
 
-Isle is a local Windows desktop app that runs as the signed-in user. In scope:
+Masthead is a local Windows desktop app that runs as the signed-in user. In scope:
 
 - **The app itself** (`Isle.exe`): anything that lets content it reads or shows make it run code, open something
   unexpected or leak data.
@@ -27,6 +27,6 @@ Isle is a local Windows desktop app that runs as the signed-in user. In scope:
 - **Opt-in network features**: the GitLab API, the Servers watch list (HTTP, status page and TLS checks) and
   GitHub data through the `gh` CLI.
 
-Out of scope: attacks that already need the same Windows account (such a process can change Isle's files and the
+Out of scope: attacks that already need the same Windows account (such a process can change Masthead's files and the
 agents' configs directly), bugs in the agents, `git`, `gh`, Docker or Windows themselves, and denial of service of
 Isle by the user's own configuration.

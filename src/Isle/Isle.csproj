@@ -12,6 +12,8 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <RootNamespace>Isle</RootNamespace>
     <AssemblyName>Isle</AssemblyName>
+    <Product>Masthead</Product>
+    <AssemblyTitle>Masthead</AssemblyTitle>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <InvariantGlobalization>false</InvariantGlobalization>
     <TieredPGO>true</TieredPGO>

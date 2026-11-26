@@ -148,7 +148,7 @@ public static class HookProtocol
         if (ev == "PermissionRequest" && decision is "allow" or "deny")
         {
             var d = new JsonObject { ["behavior"] = decision };
-            if (decision == "deny") d["message"] = Str(reply, "message") is { Length: > 0 } m ? m : "Denied from Isle.";
+            if (decision == "deny") d["message"] = Str(reply, "message") is { Length: > 0 } m ? m : "Denied from Masthead.";
             return new JsonObject
             {
                 ["hookSpecificOutput"] = new JsonObject { ["hookEventName"] = "PermissionRequest", ["decision"] = d },
@@ -178,7 +178,7 @@ public static class HookProtocol
                     {
                         ["hookEventName"] = "PreToolUse",
                         ["permissionDecision"] = "deny",
-                        ["permissionDecisionReason"] = Str(reply, "message") is { Length: > 0 } m ? m : "The user dismissed the question from Isle.",
+                        ["permissionDecisionReason"] = Str(reply, "message") is { Length: > 0 } m ? m : "The user dismissed the question from Masthead.",
                     },
                 }.ToJsonString();
         }

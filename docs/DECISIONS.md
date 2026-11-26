@@ -3,6 +3,7 @@
 One line each: decision — why.
 
 ## One app
+- The product is called Masthead; `Isle` stays in file, project, namespace, pipe, mutex, autostart and `%AppData%` names — renaming those would orphan settings and installed hooks for no user-visible gain.
 - One `Isle.exe` holds the shell, Music and the developer modules. This fork keeps only these; the upstream repository keeps the community modules.
 - The app targets `net10.0-windows10.0.19041.0` for the media session (GSMTC) through the built-in WinRT projection; no NuGet package for it.
 - Modules are registered directly in `App.StartModules`; their settings rows are in `SettingsView.OptionsPage` and their text in `Strings.Data.cs`. There is no loader and no hook list.

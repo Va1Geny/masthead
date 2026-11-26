@@ -1,6 +1,6 @@
 <div align="center">
 
-# Isle (Dev fork)
+# Masthead
 
 **A Dynamic Island for Windows, for people who live in terminals.**<br>
 A small notch that hangs from the top of the screen, shows what your machine and your coding agents are doing, and opens into a panel when you hover it.
@@ -16,9 +16,9 @@ A small notch that hangs from the top of the screen, shows what your machine and
 
 </div>
 
-This is a Dev-focused fork of `BKyrychenko/island`, the original Isle by its author; all credit for the island itself
-goes there. The upstream repository, which is not public, keeps the Community app (timers, notes, clipboard, command
-bar, AI chat, weather and more). This fork is one app, `Isle.exe`, with the shell, Music and the
+Masthead started as a Dev-focused fork of `BKyrychenko/island` (the original Isle, now called Skerry); all credit for
+the island itself goes to its author. The upstream repository, which is not public, keeps the Community app (timers,
+notes, clipboard, command bar, AI chat, weather and more). Masthead is one app with the shell, Music and the
 developer features below, and nothing else.
 
 ## Screenshots
@@ -54,7 +54,7 @@ developer features below, and nothing else.
   taken from the art.
 - **Agents** — cards for Claude Code and Codex sessions: permission requests you can answer from the island, subagent
   progress, the latest file edit, and a shortcut back to the session's terminal tab. Hooks for Claude Code, Codex and
-  Gemini CLI; switching agents removes Isle's hooks from the others.
+  Gemini CLI; switching agents removes Masthead's hooks from the others.
 - **System** — CPU (with the busiest core), memory, GPU load and VRAM, and network, each with a one-minute sparkline,
   plus the busiest processes with **End task**; a pill when CPU or memory stays above 90% for 30 seconds.
 - **Ports** — what your dev servers and databases listen on, with **Open in browser** and **End**, plus your WSL
@@ -98,7 +98,7 @@ Grab the latest release (currently **1.1.0**) from the
 - `Isle-v1.1.0-win-x64.zip` — small, needs the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0);
 - `Isle-v1.1.0-win-x64-selfcontained.zip` — larger, runs without any runtime.
 
-Unzip it to a permanent folder and run `Isle.exe`.
+Unzip it to a permanent folder and run `Isle.exe` (the files keep their original name).
 
 ## Build and run
 
@@ -117,21 +117,21 @@ Copy the folder somewhere permanent before enabling **Start with Windows**. For 
 
 ```
 src/Isle/          the app: Core, window, settings, tray, hotkeys, and Modules/ + Views/ for agents, media and the dev tools
-src/Isle.Hook/     helper the coding agents call to talk to Isle over a named pipe
+src/Isle.Hook/     helper the coding agents call to talk to Masthead over a named pipe
 src/Isle.Launcher/ small Rust launcher that starts Isle.exe
 tests/Isle.Tests/  xUnit tests
 ```
 
 ## Security
 
-Isle runs as you and treats everything it reads (repositories, CI and merge-request data, container labels and logs,
+Masthead runs as you and treats everything it reads (repositories, CI and merge-request data, container labels and logs,
 config files, server responses) as untrusted:
 
 - The agent hook endpoint is a named pipe only your Windows account can open; connections from other machines are
   refused.
 - Links from GitHub, GitLab, CI and the watch list open only if they are `https`.
 - Command-line tools (`git`, `gh`, `docker`, `wt`…) are started with separate arguments, never through a shell, and are
-  never picked up from the folder Isle was started in.
+  never picked up from the folder Masthead was started in.
 - Agent hooks are refused for a helper path a shell could misread; the GitLab token goes only to the configured host.
 - Tokens are encrypted with Windows DPAPI for your account and never logged; the AWS SSO cache is read for its expiry
   only.

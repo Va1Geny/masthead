@@ -1,6 +1,6 @@
-# Contributing to Isle
+# Contributing to Masthead
 
-Thanks for helping. This fork is the developer edition of Isle: one `Isle.exe` with the shell, Music and the developer
+Thanks for helping. Masthead is the developer edition of the island: one `Isle.exe` with the shell, Music and the developer
 tabs. Features of the Community app (timers, notes, chat…) belong in the upstream repository, not here.
 
 ## Before you start
@@ -17,7 +17,7 @@ Requirements: Windows 10 (19041) or 11 x64 and the [.NET 10 SDK](https://dotnet.
 .\scripts\build.ps1               # build, run all tests, publish into dist\ and smoke-check the packages
 .\scripts\build.ps1 -SkipTests    # faster local loop
 dotnet test                       # tests only
-.\dist\Isle\Isle.exe              # run it (only one Isle runs at a time; close yours first)
+.\dist\Isle\Isle.exe              # run it (only one Masthead runs at a time; close yours first)
 ```
 
 Use `ISLE_DATA_DIR=<temp folder>` to run with throwaway settings instead of your own `%AppData%\Isle`.

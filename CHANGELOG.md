@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the developer edition of Isle are listed here.
+All notable changes to Masthead (the developer edition of Isle) are listed here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
@@ -11,6 +11,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - `--backdrop <rrggbb>` option for `--snapshot`, used for the README screenshots.
 
 ### Changed
+- Renamed to **Masthead** in the UI, release names and docs. Files, folders and `%AppData%\Isle` keep the
+  Isle name, so settings and installed agent hooks keep working.
 - README: dark screenshots in a gallery, download, security and contributing sections.
 
 ## [1.1.0] - 2026-11-23
