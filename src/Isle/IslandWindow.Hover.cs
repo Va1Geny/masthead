@@ -43,6 +43,10 @@ public partial class IslandWindow
                 else Collapse();
                 e.Handled = true;
             }
+            // Tab on the selected tab jumps into that section's content (falls through when it has nothing focusable)
+            if (e.Key == Key.Tab && Keyboard.Modifiers == ModifierKeys.None && Keyboard.FocusedElement is RadioButton &&
+                Tabs.IsKeyboardFocusWithin && TabContent.MoveFocus(new TraversalRequest(FocusNavigationDirection.First)))
+                e.Handled = true;
             if (_hasFocus && _expanded && _overlay?.Visibility != Visibility.Visible && Keyboard.Modifiers == ModifierKeys.Control &&
                 e.Key >= Key.D1 && e.Key <= Key.D9)
             {

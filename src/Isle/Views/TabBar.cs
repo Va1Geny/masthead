@@ -228,6 +228,7 @@ public sealed class TabBar : Grid
         {
             var on = id == _selected;
             rb.IsChecked = on;
+            rb.IsTabStop = on; // one tab stop for the strip; arrows move between tabs
             ((TextBlock)rb.Tag).Visibility = on ? Visibility.Visible : Visibility.Collapsed;
             ToolTipService.SetIsEnabled(rb, !on);
         }
