@@ -8,7 +8,7 @@ A small notch that hangs from the top of the screen, shows what your machine and
 [![Windows 10/11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)](#download)
 [![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![CI](https://github.com/Va1Geny/island/actions/workflows/ci.yml/badge.svg)](https://github.com/Va1Geny/island/actions/workflows/ci.yml)
+[![CI](https://github.com/Va1Geny/masthead/actions/workflows/ci.yml/badge.svg)](https://github.com/Va1Geny/masthead/actions/workflows/ci.yml)
 
 <img src="docs/images/hero-music.png" alt="The island with the music mini player" width="860">
 
@@ -93,7 +93,7 @@ Docker and Podman are reached over their local named pipe only. Agent hooks are 
 ## Download
 
 Grab the latest release (currently **1.1.0**) from the
-[Releases](https://github.com/Va1Geny/island/releases) page:
+[Releases](https://github.com/Va1Geny/masthead/releases) page:
 
 - `Isle-v1.1.0-win-x64.zip` — small, needs the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0);
 - `Isle-v1.1.0-win-x64-selfcontained.zip` — larger, runs without any runtime.

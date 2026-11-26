@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Report a security vulnerability
-    url: https://github.com/Va1Geny/island/blob/main/SECURITY.md
+    url: https://github.com/Va1Geny/masthead/blob/main/SECURITY.md
     about: Please report security problems privately, not as a public issue.

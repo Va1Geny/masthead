@@ -64,5 +64,5 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - First release of the developer edition: one `Isle.exe` with the shell, Music, Agents, System, Ports, Projects, Log
   watcher, Kubernetes warning and Usage.
 
-[Unreleased]: https://github.com/Va1Geny/island/compare/v1.1.0...HEAD
-[1.1.0]: https://github.com/Va1Geny/island/releases/tag/v1.1.0
+[Unreleased]: https://github.com/Va1Geny/masthead/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/Va1Geny/masthead/releases/tag/v1.1.0
