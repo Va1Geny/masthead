@@ -46,7 +46,8 @@ public sealed class AgentsView : Grid
         RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-        var head = new DockPanel { Margin = new Thickness(0, -2, 0, 6) };
+        // No negative top margin: TabContent clips, and it cut the top of the hooks button's focus ring.
+        var head = new DockPanel { Margin = new Thickness(0, 0, 0, 4) };
         var hooks = IconAction("Icon.Plug", "agents.hooksTip", () => ShowHooks());
         DockPanel.SetDock(hooks, Dock.Right);
         head.Children.Add(hooks);
