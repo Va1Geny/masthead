@@ -98,8 +98,8 @@ public class GitHostsTests
         for (var i = 0; i < 15; i++) BuildHistory.Add(h, "dotnet test", new BuildRun(10 + i, true));
         Assert.Equal(BuildHistory.Keep, h["dotnet test"].Count);
         Assert.Equal(15, h["dotnet test"][0].Seconds);
-        Assert.Equal("▁▂▃▄▅▆▇█", BuildHistory.Spark([new(1, true), new(2, true), new(3, true), new(4, true), new(5, true), new(6, true), new(7, true), new(8, true)]));
-        Assert.Equal("▁▁", BuildHistory.Spark([new(5, true), new(5.2, true)]));
+        Assert.Equal([0, 1, 2, 3, 4, 5, 6, 7], BuildHistory.Levels([new(1, true), new(2, true), new(3, true), new(4, true), new(5, true), new(6, true), new(7, true), new(8, true)]));
+        Assert.Equal([0, 0], BuildHistory.Levels([new(5, true), new(5.2, true)]));
         Assert.Equal("42 s", BuildHistory.Secs(42));
         Assert.Equal("2 min 5 s", BuildHistory.Secs(125));
     }

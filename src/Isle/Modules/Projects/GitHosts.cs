@@ -157,9 +157,9 @@ public static class BuildHistory
         return null;
     }
 
-    /// <summary>"▁▃█  42 s  ·  avg 45 s" for one history.</summary>
-    public static string Trend(IReadOnlyList<BuildRun> runs) =>
-        $"{Spark(runs)}  {Secs(runs[^1].Seconds)}" + (runs.Count > 1 ? "  ·  " + Strings.T("projects.avg", Secs(runs.Average(x => x.Seconds))) : "");
+    /// <summary>"42 s  ·  avg 45 s": the last run, plus the average once there are two.</summary>
+    public static string Stats(IReadOnlyList<BuildRun> runs) =>
+        Secs(runs[^1].Seconds) + (runs.Count > 1 ? "  ·  " + Strings.T("projects.avg", Secs(runs.Average(x => x.Seconds))) : "");
 
     public static void Add(Dictionary<string, List<BuildRun>> h, string label, BuildRun run)
     {
@@ -168,12 +168,12 @@ public static class BuildHistory
         if (l.Count > Keep) l.RemoveRange(0, l.Count - Keep);
     }
 
-    /// <summary>A sparkline of the durations, oldest first ("▁▃█").</summary>
-    public static string Spark(IReadOnlyList<BuildRun> runs)
+    /// <summary>Bar heights 0-7 for a sparkline of the durations, oldest first; all 0 when the times barely differ.</summary>
+    public static int[] Levels(IReadOnlyList<BuildRun> runs)
     {
-        if (runs.Count == 0) return "";
+        if (runs.Count == 0) return [];
         double lo = runs.Min(r => r.Seconds), hi = runs.Max(r => r.Seconds);
-        return string.Concat(runs.Select(r => "▁▂▃▄▅▆▇█"[hi - lo < 0.5 ? 0 : (int)Math.Round((r.Seconds - lo) / (hi - lo) * 7)]));
+        return [.. runs.Select(r => hi - lo < 0.5 ? 0 : (int)Math.Round((r.Seconds - lo) / (hi - lo) * 7))];
     }
 
     public static string Secs(double s) => s < 90 ? Strings.T("set.seconds", s.ToString("0", CultureInfo.InvariantCulture)) : Strings.T("projects.minSec", (int)(s / 60), (int)(s % 60));

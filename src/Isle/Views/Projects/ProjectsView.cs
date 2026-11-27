@@ -33,6 +33,7 @@ public sealed class ProjectsView : Grid, ITabView
         RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         _msg.SetResourceReference(TextBlock.ForegroundProperty, "FgBrush");
+        Grid.SetIsSharedSizeScope(_top, true);
         _top.Children.Add(_msg);
         Children.Add(_top);
         var scroll = new ScrollViewer { Content = _rows, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
@@ -93,9 +94,17 @@ public sealed class ProjectsView : Grid, ITabView
         foreach (var (label, runs) in builds ?? [])
         {
             if (runs.Count == 0) continue;
-            var t = Ui.Dim($"{label}  {BuildHistory.Trend(runs)}", wrap: false);
-            t.Margin = new Thickness(4, 0, 0, 1);
-            _top.Children.Add(t);
+            // Shared columns so every row's sparkline and numbers start at the same x.
+            var g = new Grid { Margin = new Thickness(4, 0, 0, 1) };
+            FrameworkElement[] cells = [Ui.Dim(label), Bars(runs, "FgDimBrush"), Ui.Dim(BuildHistory.Stats(runs))];
+            for (var i = 0; i < cells.Length; i++)
+            {
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto, SharedSizeGroup = i < 2 ? $"build{i}" : null });
+                cells[i].Margin = new Thickness(0, 0, i < 2 ? 8 : 0, 0);
+                Grid.SetColumn(cells[i], i);
+                g.Children.Add(cells[i]);
+            }
+            _top.Children.Add(g);
         }
         if (_top.Children.Count > 1) ((FrameworkElement)_top.Children[^1]).Margin = new Thickness(4, 0, 0, 6);
     }
@@ -174,12 +183,28 @@ public sealed class ProjectsView : Grid, ITabView
         text.Children.Add(detail);
         if (r.Builds is { Count: > 0 } runs)
         {
-            var builds = new TextBlock { Text = BuildHistory.Trend(runs), TextTrimming = TextTrimming.CharacterEllipsis, FontSize = 11.5 };
-            builds.SetResourceReference(TextBlock.ForegroundProperty, "FgFaintBrush");
-            text.Children.Add(builds);
+            var stats = new TextBlock { Text = BuildHistory.Stats(runs), TextTrimming = TextTrimming.CharacterEllipsis, FontSize = 11.5, Margin = new Thickness(8, 0, 0, 0) };
+            stats.SetResourceReference(TextBlock.ForegroundProperty, "FgFaintBrush");
+            text.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Children = { Bars(runs, "FgFaintBrush"), stats } });
         }
         row.Children.Add(text);
         return row;
+    }
+
+    /// <summary>
+    /// Build-time sparkline drawn as bars on one baseline. Block characters (▁▃█) are missing from Segoe UI, so the
+    /// fallback font drew them off the text baseline, into the row above, and with no gaps.
+    /// </summary>
+    static FrameworkElement Bars(IReadOnlyList<BuildRun> runs, string brush)
+    {
+        var bars = new StackPanel { Orientation = Orientation.Horizontal, Height = 12, VerticalAlignment = VerticalAlignment.Center };
+        foreach (var level in BuildHistory.Levels(runs))
+        {
+            var bar = new System.Windows.Shapes.Rectangle { Width = 3, Height = 2 + level * 10 / 7.0, Margin = new Thickness(0, 0, 1, 0), VerticalAlignment = VerticalAlignment.Bottom };
+            bar.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, brush);
+            bars.Children.Add(bar);
+        }
+        return bars;
     }
 
     static FrameworkElement CiBadge(Repo r)
