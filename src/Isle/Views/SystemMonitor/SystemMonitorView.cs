@@ -108,8 +108,19 @@ public sealed class SystemMonitorView : Grid, ITabView, IDisposable
     internal void ShowWsl(long? bytes)
     {
         _wslBytes = bytes;
+        if (bytes is null) { _confirmWsl = false; _wsl.Children.Clear(); _wslBuiltConfirm = null; return; }
+        // rebuild only when the button changes: recreating the row every tick closed and reopened its tooltips
+        if (_wslBuiltConfirm != _confirmWsl) BuildWslRow();
+        _wslMem.Text = SystemMath.Size(bytes.Value);
+    }
+
+    bool? _wslBuiltConfirm;
+    readonly TextBlock _wslMem = new() { Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center };
+
+    void BuildWslRow()
+    {
+        _wslBuiltConfirm = _confirmWsl;
         _wsl.Children.Clear();
-        if (bytes is null) { _confirmWsl = false; return; }
         var row = new DockPanel { Margin = new Thickness(4, 0, 0, 0), LastChildFill = true };
         var button = _confirmWsl
             ? Ui.TextButton(Strings.T("sysmon.wslConfirm"), "AccentButton", new Thickness(8, 1, 8, 1), () => _ = ShutDownWslAsync(), "sysmon wsl")
@@ -117,10 +128,10 @@ public sealed class SystemMonitorView : Grid, ITabView, IDisposable
         button.ToolTip = Strings.T("sysmon.wslWarn");
         DockPanel.SetDock(button, Dock.Right);
         row.Children.Add(button);
-        var mem = new TextBlock { Text = SystemMath.Size(bytes.Value), Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center };
-        mem.SetResourceReference(StyleProperty, "TextDim");
-        DockPanel.SetDock(mem, Dock.Right);
-        row.Children.Add(mem);
+        (_wslMem.Parent as Panel)?.Children.Remove(_wslMem);
+        _wslMem.SetResourceReference(StyleProperty, "TextDim");
+        DockPanel.SetDock(_wslMem, Dock.Right);
+        row.Children.Add(_wslMem);
         var name = new TextBlock { Text = Strings.T("sysmon.wsl"), ToolTip = Strings.T("sysmon.wslTip"), VerticalAlignment = VerticalAlignment.Center };
         name.SetResourceReference(StyleProperty, "Text");
         row.Children.Add(name);
