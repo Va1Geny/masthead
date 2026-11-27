@@ -91,13 +91,6 @@ public static class DockerParse
             Sum("Volumes", v => v.TryGetProperty("UsageData", out var u) ? L(u, "Size") : 0), Sum("BuildCache", b => L(b, "Size")));
     }
 
-    public static string Size(long bytes) => bytes switch
-    {
-        >= 1L << 30 => $"{bytes / (double)(1L << 30):0.0} GB",
-        >= 1L << 20 => $"{bytes / (double)(1L << 20):0} MB",
-        _ => $"{bytes / 1024} KB",
-    };
-
     /// <summary>Docker's log stream is framed (8-byte header per chunk) unless the container has a TTY.</summary>
     public static string Logs(byte[] data)
     {

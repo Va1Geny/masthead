@@ -110,7 +110,6 @@ public sealed class SettingsView : Grid, ITabView
         var navFocused = _nav.IsKeyboardFocusWithin;
         _head.Text = Strings.T("set.title");
         _close.ToolTip = Strings.T("set.close");
-        System.Windows.Automation.AutomationProperties.SetName(_close, Strings.T("set.close"));
         _nav.Children.Clear();
         foreach (var s in Sections) _nav.Children.Add(NavItem(s));
         _title.Text = Strings.T("set." + _section);
@@ -482,13 +481,8 @@ public sealed class SettingsView : Grid, ITabView
         return panel;
     }
 
-    static Button IconButton(string icon, string tipKey, Action click)
-    {
-        var b = Ui.IconButton(Ui.MakeIcon(icon, 13), 26, click, area: null);
-        b.ToolTip = Strings.T(tipKey);
-        System.Windows.Automation.AutomationProperties.SetName(b, Strings.T(tipKey));
-        return b;
-    }
+    static Button IconButton(string icon, string tipKey, Action click) =>
+        Ui.IconButton(Ui.MakeIcon(icon, 13), 26, click, area: null, tip: Strings.T(tipKey));
 
     /// <summary>Read-only box: click it, then press the new combination. Backspace/Delete turns the hotkey off.</summary>
     FrameworkElement HotkeyBox(HotkeyInfo h)

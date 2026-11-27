@@ -94,8 +94,6 @@ public class DockerTests
         Assert.Equal(new DiskUsage(1000, 15, 300, 100), df);
         Assert.Equal(1415, df.Total);
         Assert.Equal(new DiskUsage(30, 0, 0, 0), DockerParse.Df("""{"Images":[{"Size":10},{"Size":20}]}"""));
-        Assert.Equal("1.5 GB", DockerParse.Size(3L << 29));
-        Assert.Equal("12 MB", DockerParse.Size(12L << 20));
     }
 
     static byte[] LogFrame(byte stream, string s) { var b = Encoding.UTF8.GetBytes(s); return [stream, 0, 0, 0, 0, 0, (byte)(b.Length >> 8), (byte)b.Length, .. b]; }

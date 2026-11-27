@@ -1,5 +1,4 @@
 using System.Windows;
-using System.Windows.Threading;
 using Isle.Core;
 using Isle.Views.Music;
 
@@ -12,12 +11,10 @@ namespace Isle.Modules.Media;
 public sealed class MediaModule(IslandWindow island) : IModule
 {
     const string PillId = "music", BannerId = "music.track";
-    static readonly TimeSpan BannerTime = TimeSpan.FromSeconds(2.2);
 
     MediaSession? _session;
     MiniPlayerPill? _mini;
     readonly List<Equalizer> _compacts = [];
-    DispatcherTimer? _bannerTimer;
     string? _banneredTrack;
     bool _pillShown;
 
@@ -98,7 +95,7 @@ public sealed class MediaModule(IslandWindow island) : IModule
 
     void ShowBanner(MediaState cur)
     {
-        island.Pill.Set(new PillItem
+        island.Pill.Flash(new PillItem
         {
             Id = BannerId,
             Priority = PillPriority.Transient,
@@ -107,23 +104,12 @@ public sealed class MediaModule(IslandWindow island) : IModule
             Height = TrackBanner.BannerHeight,
             IsBanner = true,
             Peek = true,
-        });
-        _bannerTimer ??= NewTimer(BannerTime, () => island.Pill.Remove(BannerId));
-        _bannerTimer.Stop();
-        _bannerTimer.Start();
-    }
-
-    DispatcherTimer NewTimer(TimeSpan interval, Action tick)
-    {
-        var t = new DispatcherTimer(DispatcherPriority.Background, island.Dispatcher) { Interval = interval };
-        t.Tick += (_, _) => { t.Stop(); tick(); };
-        return t;
+        }, 2.2);
     }
 
     public void Stop()
     {
         SetIdleWidth(120);
-        _bannerTimer?.Stop();
         island.Pill.Remove(PillId);
         island.Pill.Remove(BannerId);
         if (_session is not null)

@@ -35,9 +35,7 @@ public sealed class SetupView : Grid
     {
         Children.Clear();
         var title = new TextBlock { Text = Strings.T(_step == 0 ? "setup.title1" : "setup.title2") };
-        var close = Ui.IconButton(Ui.MakeIcon("Icon.Close", 12), 28, _onClose, "setup close");
-        close.ToolTip = Strings.T("setup.close");
-        System.Windows.Automation.AutomationProperties.SetName(close, Strings.T("setup.close"));
+        var close = Ui.IconButton(Ui.MakeIcon("Icon.Close", 12), 28, _onClose, "setup close", tip: Strings.T("setup.close"));
         var counter = new TextBlock { Text = $"{_ticked.Count} / {SetupModel.Limit}", Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center, ToolTip = Strings.T("setup.limit", SetupModel.Limit) };
         counter.SetResourceReference(StyleProperty, "TextDim");
 

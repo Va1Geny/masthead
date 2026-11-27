@@ -128,13 +128,9 @@ public sealed class PortsView : Grid, ITabView
         }
         else
         {
-            var open = Ui.IconButton(Ui.MakeIcon("Icon.Globe", 13), 26, () => ProcessOps.Open(Url(l.Port)), "ports open");
-            open.ToolTip = Strings.T("ports.open", Url(l.Port));
-            System.Windows.Automation.AutomationProperties.SetName(open, Strings.T("ports.open", Url(l.Port)));
+            var open = Ui.IconButton(Ui.MakeIcon("Icon.Globe", 13), 26, () => ProcessOps.Open(Url(l.Port)), "ports open", tip: Strings.T("ports.open", Url(l.Port)));
             buttons.Children.Add(open);
-            var end = Ui.IconButton(Ui.MakeIcon("Icon.Close", 11), 26, () => { _confirm = (l.Port, l.Pid); Show(_shown); }, "ports end");
-            end.ToolTip = Strings.T("sysmon.end", l.Process);
-            System.Windows.Automation.AutomationProperties.SetName(end, Strings.T("sysmon.end", l.Process));
+            var end = Ui.IconButton(Ui.MakeIcon("Icon.Close", 11), 26, () => { _confirm = (l.Port, l.Pid); Show(_shown); }, "ports end", tip: Strings.T("sysmon.end", l.Process));
             buttons.Children.Add(end);
         }
         DockPanel.SetDock(buttons, Dock.Right);

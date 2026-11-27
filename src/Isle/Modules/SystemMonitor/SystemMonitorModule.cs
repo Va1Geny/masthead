@@ -73,17 +73,7 @@ public sealed class SystemMonitorModule(IslandWindow island) : IModule
     }
 
 
-    internal static FrameworkElement AlertView(string text)
-    {
-        var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-        var icon = Views.Ui.MakeIcon("Icon.Gauge", 14, "WarnBrush");
-        icon.Margin = new Thickness(0, 0, 6, 0);
-        row.Children.Add(icon);
-        var t = new TextBlock { Text = text, FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
-        t.SetResourceReference(TextBlock.ForegroundProperty, "FgBrush");
-        row.Children.Add(t);
-        return row;
-    }
+    internal static FrameworkElement AlertView(string text) => Views.Live.IndicatorPill.Notice("Icon.Gauge", "WarnBrush", text);
 
     public void Stop()
     {

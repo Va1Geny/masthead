@@ -53,17 +53,8 @@ public sealed class PortsModule(IslandWindow island) : IModule
     }
 
 
-    internal static FrameworkElement PillView(Listener l)
-    {
-        var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-        var icon = Views.Ui.MakeIcon("Icon.Server", 14, "OkBrush");
-        icon.Margin = new Thickness(0, 0, 6, 0);
-        row.Children.Add(icon);
-        var t = new TextBlock { Text = PortFilter.DesktopApp(l.Process) is { } app ? Strings.T("ports.appLoading", app) : $"{l.Process} · :{l.Port}", FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
-        t.SetResourceReference(TextBlock.ForegroundProperty, "FgBrush");
-        row.Children.Add(t);
-        return row;
-    }
+    internal static FrameworkElement PillView(Listener l) =>
+        Views.Live.IndicatorPill.Notice("Icon.Server", "OkBrush", PortFilter.DesktopApp(l.Process) is { } app ? Strings.T("ports.appLoading", app) : $"{l.Process} · :{l.Port}");
 
     public void Stop()
     {

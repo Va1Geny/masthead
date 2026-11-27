@@ -162,27 +162,14 @@ public sealed class KubeModule(IslandWindow island) : IModule
         if (!initial) Logger.Info("kube context changed");
         if (!KubeConfig.IsProd(ctx, _pattern)) { island.Pill.Remove(IndicatorId); island.Pill.Remove(BannerId); return; }
         island.Pill.Set(Indicator(ctx!));
-        if (!initial) Banner(ctx!);
+        if (!initial) island.Pill.Flash(BannerItem(ctx!), 6);
     }
 
-    internal static PillItem Indicator(string ctx) => new()
-    {
-        Id = IndicatorId, Priority = PillPriority.MicCamera - 1, // just below the mic/camera privacy indicator, which must win
-        Width = 240,
-        View = () => new IndicatorPill("Icon.Server", ctx, Strings.T("kube.prod"), "DangerBrush"),
-        Compact = () => new IndicatorPill("Icon.Server", "", "", "DangerBrush", center: true), CompactWidth = 40,
-    };
+    internal static PillItem Indicator(string ctx) =>
+        IndicatorPill.Status(IndicatorId, "Icon.Server", ctx, Strings.T("kube.prod"), "DangerBrush", 240);
 
-    internal static PillItem BannerItem(string ctx) => new()
-    {
-        Id = BannerId, Priority = PillPriority.Transient, Width = IndicatorPill.MessageWidth(Strings.T("kube.banner", ctx)) + 30, Peek = true,
-        View = () => new IndicatorPill("Icon.Server", Strings.T("kube.banner", ctx), "", "DangerBrush"),
-    };
-
-    void Banner(string ctx)
-    {
-        island.Pill.Flash(BannerItem(ctx), 6);
-    }
+    internal static PillItem BannerItem(string ctx) =>
+        IndicatorPill.Banner(BannerId, "Icon.Server", Strings.T("kube.banner", ctx), "DangerBrush");
 
     public void Stop()
     {

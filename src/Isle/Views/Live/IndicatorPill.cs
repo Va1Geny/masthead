@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using Isle.Core;
 
 namespace Isle.Views.Live;
 
@@ -49,5 +50,35 @@ public sealed class IndicatorPill : Grid
         var detail = new TextBlock { Text = sub, FontFamily = label.FontFamily, FontSize = 11.5 };
         detail.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         return Math.Clamp(60 + label.DesiredSize.Width + (sub.Length > 0 ? 8 + Math.Min(150, detail.DesiredSize.Width) : 0), 200, 420);
+    }
+
+    /// <summary>Lasting status (engine down, prod context, server problem) with an icon-only view for the side slot.
+    /// Sits just below the mic/camera privacy indicator, which must win.</summary>
+    public static PillItem Status(string id, string icon, string text, string sub, string brush, double width, string? tabId = null) => new()
+    {
+        Id = id, Priority = PillPriority.MicCamera - 1, Width = width, TabId = tabId,
+        View = () => new IndicatorPill(icon, text, sub, brush),
+        Compact = () => new IndicatorPill(icon, "", "", brush, center: true), CompactWidth = 40,
+    };
+
+    /// <summary>One-line message, as wide as its text.</summary>
+    public static PillItem Banner(string id, string icon, string text, string brush, string? tabId = null) => new()
+    {
+        Id = id, Priority = PillPriority.Transient, TabId = tabId, Peek = true,
+        Width = MessageWidth(text) + 30,
+        View = () => new IndicatorPill(icon, text, "", brush),
+    };
+
+    /// <summary>Centred coloured icon and text, for short notices.</summary>
+    public static FrameworkElement Notice(string icon, string iconBrush, string text)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        var i = Ui.MakeIcon(icon, 14, iconBrush);
+        i.Margin = new Thickness(0, 0, 6, 0);
+        row.Children.Add(i);
+        var t = new TextBlock { Text = text, FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
+        t.SetResourceReference(TextBlock.ForegroundProperty, "FgBrush");
+        row.Children.Add(t);
+        return row;
     }
 }

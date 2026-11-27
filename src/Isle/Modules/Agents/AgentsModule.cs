@@ -20,7 +20,7 @@ public sealed class AgentsModule(IslandWindow island) : IModule
     AgentBook? _book;
     AgentPipeServer? _server;
     AgentsView? _view;
-    DispatcherTimer? _tidy, _doneTimer;
+    DispatcherTimer? _tidy;
     string _pillSig = "";
     bool _anyHooks;
 
@@ -127,13 +127,7 @@ public sealed class AgentsModule(IslandWindow island) : IModule
         Changed();
     }
 
-    void OnFinished(AgentSession s)
-    {
-        island.Pill.Set(DonePill(s));
-        _doneTimer ??= new DispatcherTimer(TimeSpan.FromSeconds(5), DispatcherPriority.Background, (_, _) => { _doneTimer!.Stop(); island.Pill.Remove(DonePillId); }, _ui);
-        _doneTimer.Stop();
-        _doneTimer.Start();
-    }
+    void OnFinished(AgentSession s) => island.Pill.Flash(DonePill(s), 5);
 
     static string Title(AgentSession s) => s.Project.Length > 0 ? s.Project : AgentText.AgentName(s.Agent);
 
@@ -246,7 +240,6 @@ public sealed class AgentsModule(IslandWindow island) : IModule
         }
         _tidy?.Stop();
         _tidy = null;
-        _doneTimer?.Stop();
         island.Pill.Remove(PillId);
         island.Pill.Remove(DonePillId);
         island.RemoveTab(TabId);

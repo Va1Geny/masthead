@@ -134,7 +134,7 @@ public sealed class ServersView : Grid, ITabView
         var rm = _confirm == key
             ? Ui.TextButton(Strings.T("servers.removeConfirm"), "AccentButton", new Thickness(8, 1, 8, 1), () => _ = RemoveWatch(item), "servers remove")
             : Ui.IconAction("Icon.Close", "servers.remove", () => { _confirm = key; Show(_data, _results, _reach); }, "servers remove");
-        if (_confirm != key) { rm.ToolTip = Strings.T("servers.remove", item.Target); System.Windows.Automation.AutomationProperties.SetName(rm, Strings.T("servers.remove", item.Target)); }
+        if (_confirm != key) rm.ToolTip = Strings.T("servers.remove", item.Target);
         DockPanel.SetDock(rm, Dock.Right);
         row.Children.Add(rm);
         var tag = new TextBlock { Text = bad is null ? "…" : down ? "!" : "OK", Width = 62, VerticalAlignment = VerticalAlignment.Center };
@@ -182,9 +182,7 @@ public sealed class ServersView : Grid, ITabView
     FrameworkElement HostRow(SshHost h, IReadOnlyDictionary<string, bool> reach)
     {
         var row = new DockPanel { Margin = new Thickness(4, 0, 0, 2) };
-        var open = Ui.IconButton(Ui.MakeIcon("Icon.Play", 12), 26, () => ServersModule.OpenSsh(h.Alias), "servers ssh");
-        open.ToolTip = Strings.T("servers.open", h.Alias);
-        System.Windows.Automation.AutomationProperties.SetName(open, Strings.T("servers.open", h.Alias));
+        var open = Ui.IconButton(Ui.MakeIcon("Icon.Play", 12), 26, () => ServersModule.OpenSsh(h.Alias), "servers ssh", tip: Strings.T("servers.open", h.Alias));
         DockPanel.SetDock(open, Dock.Right);
         row.Children.Add(open);
         var s = Settings.Current;

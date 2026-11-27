@@ -101,12 +101,8 @@ public sealed class ServersModule(IslandWindow island) : IModule
     internal static PillItem WatchPill(string target, string problem, int count) =>
         Indicator(WatchId, target, count > 1 ? $"{problem} +{count - 1}" : problem, "DangerBrush");
 
-    static PillItem Indicator(string id, string text, string sub, string brush) => new()
-    {
-        Id = id, Priority = PillPriority.MicCamera - 1, Width = 260,
-        View = () => new IndicatorPill("Icon.Server", text, sub, brush),
-        Compact = () => new IndicatorPill("Icon.Server", "", "", brush, center: true), CompactWidth = 40,
-    };
+    static PillItem Indicator(string id, string text, string sub, string brush) =>
+        IndicatorPill.Status(id, "Icon.Server", text, sub, brush, 260);
 
     /// <summary>wt.exe ssh ALIAS; a plain ssh console when Windows Terminal isn't installed. Aliases come from ssh_config (<see cref="ServerInfo.SafeAlias"/>).</summary>
     public static void OpenSsh(string alias)

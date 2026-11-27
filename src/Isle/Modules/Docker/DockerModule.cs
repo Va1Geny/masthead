@@ -94,19 +94,11 @@ public sealed class DockerModule(IslandWindow island) : IModule
         else if (showDown && was) island.Pill.Flash(DownItem(Engine), 7);
     }
 
-    internal static PillItem DownItem(string engine) => new()
-    {
-        Id = DownId, Priority = PillPriority.MicCamera - 1, TabId = TabId,
-        View = () => new IndicatorPill("Icon.Docker", Strings.T("docker.down", Name(engine)), "", "WarnBrush"),
-        Compact = () => new IndicatorPill("Icon.Docker", "", "", "WarnBrush", center: true), CompactWidth = 40, Width = 190,
-    };
+    internal static PillItem DownItem(string engine) =>
+        IndicatorPill.Status(DownId, "Icon.Docker", Strings.T("docker.down", Name(engine)), "", "WarnBrush", 190, TabId);
 
-    internal static PillItem CrashItem(string name) => new()
-    {
-        Id = CrashId, Priority = PillPriority.Transient, TabId = TabId, Peek = true,
-        Width = IndicatorPill.MessageWidth(Strings.T("docker.crash", name)) + 30,
-        View = () => new IndicatorPill("Icon.Docker", Strings.T("docker.crash", name), "", "DangerBrush"),
-    };
+    internal static PillItem CrashItem(string name) =>
+        IndicatorPill.Banner(CrashId, "Icon.Docker", Strings.T("docker.crash", name), "DangerBrush", TabId);
 
     static string Name(string engine) => engine == "podman" ? "Podman" : "Docker";
 

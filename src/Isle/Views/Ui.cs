@@ -1,5 +1,4 @@
 using System.Windows;
-using System.Windows.Automation;
 using System.Windows.Controls;
 using Isle.Core;
 
@@ -39,9 +38,10 @@ static class Ui
         return b;
     }
 
-    public static Button IconButton(FrameworkElement icon, double size, Action click, string? area, bool handled = false)
+    /// <param name="tip">Tooltip; the IconButton style also uses it as the accessible name.</param>
+    public static Button IconButton(FrameworkElement icon, double size, Action click, string? area, bool handled = false, string? tip = null)
     {
-        var b = new Button { Content = icon, Width = size, Height = size };
+        var b = new Button { Content = icon, Width = size, Height = size, ToolTip = tip };
         b.SetResourceReference(FrameworkElement.StyleProperty, "IconButton");
         OnClick(b, click, area, handled);
         return b;
@@ -50,10 +50,7 @@ static class Ui
     /// <summary>28 px icon button with a translated tooltip that screen readers also announce.</summary>
     public static Button IconAction(string icon, string tipKey, Action click, string area, string brush = "FgDimBrush")
     {
-        var b = IconButton(MakeIcon(icon, 15, brush), 28, click, area);
-        b.ToolTip = Strings.T(tipKey);
-        AutomationProperties.SetName(b, Strings.T(tipKey));
-        return b;
+        return IconButton(MakeIcon(icon, 15, brush), 28, click, area, tip: Strings.T(tipKey));
     }
 
     public static TextBlock Dim(string text, bool wrap = false)

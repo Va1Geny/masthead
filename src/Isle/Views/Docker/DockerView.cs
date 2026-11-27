@@ -1,9 +1,9 @@
 using System.Net.Http;
 using System.Windows;
-using System.Windows.Automation;
 using System.Windows.Controls;
 using Isle.Core;
 using Isle.Modules.Docker;
+using Isle.Modules.SystemMonitor;
 
 namespace Isle.Views.Docker;
 
@@ -74,7 +74,7 @@ public sealed class DockerView : Grid, ITabView
         if (!_m.Up) { df = null; if (_logCts is not null) Hide(); } // engine down: the log stream is dead, close its view
         _df = df;
         _prune.Visibility = _m.Up ? Visibility.Visible : Visibility.Collapsed;
-        _disk.Text = df is null ? "" : Strings.T("docker.disk", DockerParse.Size(df.Images), DockerParse.Size(df.Volumes), DockerParse.Size(df.BuildCache));
+        _disk.Text = df is null ? "" : Strings.T("docker.disk", SystemMath.Size(df.Images), SystemMath.Size(df.Volumes), SystemMath.Size(df.BuildCache));
         _rows.Children.Clear();
         if (!_m.Up || _m.Boxes.Count == 0)
         {
@@ -145,13 +145,8 @@ public sealed class DockerView : Grid, ITabView
         return row;
     }
 
-    static Button Act(string icon, string tip, Action click)
-    {
-        var b = Ui.IconButton(Ui.MakeIcon(icon, 12), 26, click, "docker action");
-        b.ToolTip = tip;
-        AutomationProperties.SetName(b, tip);
-        return b;
-    }
+    static Button Act(string icon, string tip, Action click) =>
+        Ui.IconButton(Ui.MakeIcon(icon, 12), 26, click, "docker action", tip: tip);
 
     async Task DoAct(Box b, string action)
     {
@@ -223,7 +218,7 @@ public sealed class DockerView : Grid, ITabView
         var what = Ui.Dim(Strings.T("docker.pruneWhat"), wrap: true);
         what.Margin = new Thickness(0, 0, 0, 8);
         body.Children.Add(what);
-        if (df is not null) body.Children.Add(Ui.Dim(Strings.T("docker.disk", DockerParse.Size(df.Images), DockerParse.Size(df.Volumes), DockerParse.Size(df.BuildCache)), wrap: true));
+        if (df is not null) body.Children.Add(Ui.Dim(Strings.T("docker.disk", SystemMath.Size(df.Images), SystemMath.Size(df.Volumes), SystemMath.Size(df.BuildCache)), wrap: true));
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 12, 0, 0) };
         var go = Ui.TextButton(Strings.T("docker.pruneConfirm"), "AccentButton", new Thickness(12, 3, 12, 4), () => _ = Prune(), "docker prune");
         go.Margin = new Thickness(0, 0, 6, 0);
@@ -239,7 +234,7 @@ public sealed class DockerView : Grid, ITabView
         try
         {
             var freed = await _m.Api!.PruneAsync();
-            _island.ShowToast(Strings.T("docker.pruned", DockerParse.Size(freed)));
+            _island.ShowToast(Strings.T("docker.pruned", SystemMath.Size(freed)));
             await LoadDf();
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException)
