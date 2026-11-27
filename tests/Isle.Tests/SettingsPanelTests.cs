@@ -23,7 +23,7 @@ public class SettingsPanelTests
         Sta.Run(_ =>
         {
             var view = new SettingsView(new SettingsActions(() => [], (_, _) => true, _ => { },
-                _ => ModuleState.Running, () => { }, _ => { }, _ => { }, () => { }));
+                _ => { }, _ => { }, () => { }));
             view.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("/Isle;component/Styles/Theme.xaml", UriKind.Relative) });
             view.Resources["CompactTargetMin"] = minimum;
             var slider = Descendants(view).OfType<Slider>().Single();
@@ -76,7 +76,7 @@ public class SettingsPanelTests
             try
             {
                 var view = new SettingsView(new SettingsActions(() => [], (_, _) => true, _ => { },
-                    _ => ModuleState.Running, () => { }, _ => { }, _ => { }, () => { }));
+                    _ => { }, _ => { }, () => { }));
                 foreach (var section in new[] { "general", "options" })
                 {
                     view.ShowSection(section);
@@ -156,11 +156,10 @@ public class SettingsPanelTests
             {
                 var rebinds = new List<(string, string?)>();
                 var v = new SettingsView(new SettingsActions(
-                    Hotkeys: () => [new HotkeyInfo("toggle", "hotkey.toggle", "Win+Alt+Space", "Win+Alt+Space", true), new HotkeyInfo("voice", "hotkey.voice", "", "Win+Alt+V", false)],
+                    Hotkeys: () => [new HotkeyInfo("toggle", "hotkey.toggle", "Win+Alt+Space", "Win+Alt+Space", true), new HotkeyInfo("other", "hotkey.toggle", "", "Win+Alt+V", false)],
                     Rebind: (id, g) => { rebinds.Add((id, g)); return true; },
                     SuspendHotkeys: _ => { },
-                    StateOf: _ => ModuleState.Running,
-                    SyncModules: () => { }, RestartModule: _ => { }, Open: _ => { }, Close: () => { }));
+                    RestartModule: _ => { }, Open: _ => { }, Close: () => { }));
                 foreach (var lang in new[] { "en", "uk" })
                 {
                     Strings.Language = lang;

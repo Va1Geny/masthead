@@ -9,7 +9,7 @@ namespace Isle.Modules.Media;
 /// Music (module id "media"): follows the system media session, shows it as the mini player in the pill (title banner
 /// on track change) and tints the accent from the album art.
 /// </summary>
-public sealed class MediaModule(IslandWindow island) : IModule, IDisposable
+public sealed class MediaModule(IslandWindow island) : IModule
 {
     const string PillId = "music", BannerId = "music.track";
     static readonly TimeSpan BannerTime = TimeSpan.FromSeconds(2.2);
@@ -137,6 +137,4 @@ public sealed class MediaModule(IslandWindow island) : IModule, IDisposable
         _pillShown = false;
         Theme.SetAccent(null);
     }
-
-    public void Dispose() { if (_session is not null) Stop(); }
 }

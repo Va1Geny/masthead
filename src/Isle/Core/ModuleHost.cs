@@ -8,8 +8,6 @@ public interface IModule
     void Stop();
 }
 
-public enum ModuleState { Stopped, Running, Failed }
-
 /// <summary>
 /// Owns module lifetime: modules are registered as factories (nothing is constructed until needed),
 /// started when enabled in settings, stopped when disabled, and isolated from each other's failures.
@@ -21,16 +19,12 @@ public sealed class ModuleHost
         public readonly string Id = id;
         public readonly Func<IModule> Factory = factory;
         public readonly bool DefaultEnabled = defaultEnabled;
-        public IModule? Instance;
-        public ModuleState State;
+        public IModule? Instance; // non-null only while running
     }
 
     readonly Dictionary<string, Entry> _entries = new(StringComparer.OrdinalIgnoreCase);
     readonly List<string> _order = [];
     readonly Func<string, bool, bool> _isEnabled;
-
-    /// <summary>Raised after a module changes state.</summary>
-    public event Action<string, ModuleState>? StateChanged;
 
     public ModuleHost(Func<string, bool, bool>? isEnabled = null) =>
         _isEnabled = isEnabled ?? ((id, def) => Settings.Current.IsModuleEnabled(id, def));
@@ -45,11 +39,9 @@ public sealed class ModuleHost
 
     public bool IsEnabled(string id) => _entries.TryGetValue(id, out var e) && _isEnabled(e.Id, e.DefaultEnabled);
 
-    public ModuleState StateOf(string id) => _entries.TryGetValue(id, out var e) ? e.State : ModuleState.Stopped;
-
     /// <summary>The running instance, or null when the module is stopped/failed/unknown.</summary>
     public T? Get<T>(string id) where T : class, IModule =>
-        _entries.TryGetValue(id, out var e) && e.State == ModuleState.Running ? e.Instance as T : null;
+        _entries.TryGetValue(id, out var e) ? e.Instance as T : null;
 
     /// <summary>Starts every enabled module and stops every disabled one. Call after settings change.</summary>
     public void Sync()
@@ -64,48 +56,33 @@ public sealed class ModuleHost
     public bool Start(string id)
     {
         if (!_entries.TryGetValue(id, out var e)) return false;
-        if (e.State == ModuleState.Running) return true;
+        if (e.Instance is not null) return true;
+        IModule? instance = null;
         try
         {
-            e.Instance ??= e.Factory();
-            e.Instance.Start();
-            SetState(e, ModuleState.Running);
+            instance = e.Factory();
+            instance.Start();
+            e.Instance = instance;
             return true;
         }
         catch (Exception ex)
         {
             Logger.Error($"module {id} failed to start", ex);
-            try { e.Instance?.Stop(); } catch { /* already failing */ }
-            e.Instance = null;
-            SetState(e, ModuleState.Failed);
+            try { instance?.Stop(); } catch { /* already failing */ }
             return false;
         }
     }
 
     public void Stop(string id)
     {
-        if (!_entries.TryGetValue(id, out var e) || e.Instance is null)
-        {
-            if (e is not null && e.State == ModuleState.Failed) SetState(e, ModuleState.Stopped);
-            return;
-        }
+        if (!_entries.TryGetValue(id, out var e) || e.Instance is null) return;
         try { e.Instance.Stop(); }
         catch (Exception ex) { Logger.Error($"module {id} failed to stop", ex); }
-        (e.Instance as IDisposable)?.Dispose();
         e.Instance = null;
-        SetState(e, ModuleState.Stopped);
     }
 
     public void StopAll()
     {
         for (var i = _order.Count - 1; i >= 0; i--) Stop(_order[i]);
-    }
-
-    void SetState(Entry e, ModuleState state)
-    {
-        if (e.State == state) return;
-        e.State = state;
-        try { StateChanged?.Invoke(e.Id, state); }
-        catch (Exception ex) { Logger.Error("module state handler", ex); }
     }
 }

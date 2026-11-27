@@ -53,7 +53,7 @@ public sealed class LogTail(string path, Regex pattern)
 /// Log watcher (module id "logs"): checks the files in "logs.files" every 2 s and shows a pill with the first new
 /// error line ("logs.pattern", default ERROR / FATAL / Exception); a click opens the file.
 /// </summary>
-public sealed class LogWatchModule(IslandWindow island) : IModule, IDisposable
+public sealed class LogWatchModule(IslandWindow island) : IModule
 {
     const string PillId = "logs.match";
     public const string DefaultPattern = @"\b(?:ERROR|FATAL|CRITICAL|Unhandled|panic)\b|Exception\b";
@@ -122,6 +122,4 @@ public sealed class LogWatchModule(IslandWindow island) : IModule, IDisposable
         island.Pill.Remove(PillId);
         _tails.Clear();
     }
-
-    public void Dispose() => Stop();
 }

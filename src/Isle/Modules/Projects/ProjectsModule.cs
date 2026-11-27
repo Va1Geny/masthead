@@ -14,7 +14,7 @@ namespace Isle.Modules.Projects;
 /// Repositories come from the "projects.paths" option. CI and review requests go through the gh CLI login
 /// (Isle never sees a GitHub token); without gh, or with setup.git not github, GitHub CI shows nothing.
 /// </summary>
-public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
+public sealed class ProjectsModule(IslandWindow island) : IModule
 {
     public const string TabId = "projects";
     const string PillId = "projects.event";
@@ -219,6 +219,4 @@ public sealed class ProjectsModule(IslandWindow island) : IModule, IDisposable
         _gl = null;
         _lastRuns.Clear();
     }
-
-    public void Dispose() => Stop();
 }

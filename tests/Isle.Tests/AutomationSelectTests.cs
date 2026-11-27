@@ -53,7 +53,7 @@ public class AutomationSelectTests
             {
                 settings.Theme = "Dark";
                 var view = new SettingsView(new SettingsActions(() => [], (_, _) => true, _ => { },
-                    _ => ModuleState.Running, () => { }, _ => { }, _ => { }, () => { }));
+                    _ => { }, _ => { }, () => { }));
                 view.Measure(new System.Windows.Size(640, 350));
                 view.Arrange(new System.Windows.Rect(0, 0, 640, 350));
                 var light = Descendants(view).OfType<RadioButton>().First(r => r.Content as string == Strings.T("set.theme.Light"));

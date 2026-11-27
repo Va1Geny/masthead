@@ -81,7 +81,7 @@ public static class KubeConfig
 /// Kubernetes context warning (module id "kube"): a persistent pill indicator while the active kubectl context
 /// matches "kube.prodPattern", plus a short banner when the context switches to such a context.
 /// </summary>
-public sealed class KubeModule(IslandWindow island) : IModule, IDisposable
+public sealed class KubeModule(IslandWindow island) : IModule
 {
     const string IndicatorId = "kube.prod", BannerId = "kube.banner";
     readonly List<FileSystemWatcher> _watchers = [];
@@ -194,8 +194,6 @@ public sealed class KubeModule(IslandWindow island) : IModule, IDisposable
         island.Pill.Remove(BannerId);
         _context = null;
     }
-
-    public void Dispose() => Stop();
 }
 
 static class KubeSnapshots

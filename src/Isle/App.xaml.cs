@@ -115,8 +115,6 @@ public partial class App : Application
                 Hotkeys: () => w.Hotkeys.List(),
                 Rebind: (id, g) => w.Hotkeys.Rebind(id, g),
                 SuspendHotkeys: on => w.Hotkeys.Suspend(on),
-                StateOf: Host.StateOf,
-                SyncModules: Host.Sync,
                 RestartModule: id => { if (!Host.IsEnabled(id)) return; Host.Stop(id); Host.Start(id); },
                 Open: OpenFromSettings,
                 Close: w.HideOverlay));

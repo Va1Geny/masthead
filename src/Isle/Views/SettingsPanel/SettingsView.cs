@@ -15,8 +15,6 @@ public sealed record SettingsActions(
     Func<IReadOnlyList<HotkeyInfo>> Hotkeys,
     Func<string, string?, bool> Rebind,
     Action<bool> SuspendHotkeys,
-    Func<string, ModuleState> StateOf,
-    Action SyncModules,
     Action<string> RestartModule,
     Action<string> Open,
     Action Close);

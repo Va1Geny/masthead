@@ -15,7 +15,7 @@ public sealed record ServersData(List<SshHost> Hosts, List<AwsProfile> Aws, Date
 /// Pills: AWS SSO expiring/expired, watched item down or certificate expiring. The network is only touched for watch-list items
 /// the user added and for ssh hosts with reachability switched on.
 /// </summary>
-public sealed class ServersModule(IslandWindow island) : IModule, IDisposable
+public sealed class ServersModule(IslandWindow island) : IModule
 {
     public const string TabId = "servers";
     const string SsoId = "servers.sso", WatchId = "servers.watch";
@@ -138,8 +138,6 @@ public sealed class ServersModule(IslandWindow island) : IModule, IDisposable
         island.Pill.Remove(WatchId);
         island.RemoveTab(TabId);
     }
-
-    public void Dispose() => Stop();
 }
 
 static class ServersSnapshots

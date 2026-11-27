@@ -11,7 +11,7 @@ namespace Isle.Modules.Agents;
 /// Agents tab with cards and Allow / Deny / question answers, pill dot for the most urgent state, hook install/remove.
 /// Options: agents.approvals (answer requests in the island, default on), agents.timeout (seconds, default 60).
 /// </summary>
-public sealed class AgentsModule(IslandWindow island) : IModule, IDisposable
+public sealed class AgentsModule(IslandWindow island) : IModule
 {
     public const string TabId = "agents";
     const string PillId = "agents", DonePillId = "agents.done";
@@ -253,6 +253,4 @@ public sealed class AgentsModule(IslandWindow island) : IModule, IDisposable
         _view = null;
         _pillSig = "";
     }
-
-    public void Dispose() => Stop();
 }

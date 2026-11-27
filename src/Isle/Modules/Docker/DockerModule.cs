@@ -10,7 +10,7 @@ namespace Isle.Modules.Docker;
 /// Containers (module id "docker"; the engine is the setup answer docker|podman, none keeps it off): the Docker tab,
 /// refreshed from the engine's /events stream instead of polling, a crash-loop pill and an engine-down pill.
 /// </summary>
-public sealed class DockerModule(IslandWindow island) : IModule, IDisposable
+public sealed class DockerModule(IslandWindow island) : IModule
 {
     public const string TabId = "docker";
     const string DownId = "docker.down", CrashId = "docker.crash";
@@ -125,8 +125,6 @@ public sealed class DockerModule(IslandWindow island) : IModule, IDisposable
         Boxes = [];
         Up = false;
     }
-
-    public void Dispose() => Stop();
 }
 
 /// <summary>--snapshot states: demo containers only, nothing talks to an engine.</summary>

@@ -8,7 +8,7 @@ namespace Isle.Modules.Usage;
 /// %USERPROFILE%\.claude\projects (or CLAUDE_CONFIG_DIR) incrementally into usage.json, only while the tab is shown
 /// and when refresh is pressed: no timer, nothing runs while idle. Only token counters are read, never message text.
 /// </summary>
-public sealed class UsageModule(IslandWindow island) : IModule, IDisposable
+public sealed class UsageModule(IslandWindow island) : IModule
 {
     public const string TabId = "usage";
 
@@ -31,6 +31,4 @@ public sealed class UsageModule(IslandWindow island) : IModule, IDisposable
         _cts = null;
         island.RemoveTab(TabId);
     }
-
-    public void Dispose() => Stop();
 }

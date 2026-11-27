@@ -24,7 +24,7 @@ public class KeyboardNavigationTests
             {
                 settings.Theme = "Dark";
                 var view = new SettingsView(new SettingsActions(() => [], (_, _) => true, _ => { },
-                    _ => ModuleState.Running, () => { }, _ => { }, _ => { }, () => { }));
+                    _ => { }, _ => { }, () => { }));
                 KeyboardNavigation.SetTabNavigation(view, KeyboardNavigationMode.Cycle);
                 var host = new Grid { Children = { new Button { Content = "Music" }, view } };
                 var parameters = new HwndSourceParameters("IsleThemeKeyboard") { Width = 640, Height = 350 };
@@ -56,8 +56,8 @@ public class KeyboardNavigationTests
         {
             var view = new SettingsView(new SettingsActions(
                 () => [new HotkeyInfo("toggle", "hotkey.toggle", "F5", "F5", true)],
-                (_, _) => true, _ => { }, _ => ModuleState.Running,
-                () => { }, _ => { }, _ => { }, () => { }));
+                (_, _) => true, _ => { },
+                _ => { }, _ => { }, () => { }));
             var nav = ((DockPanel)view.Children[0]).Children.OfType<StackPanel>().Single();
             Assert.Equal(SettingsView.Sections, nav.Children.OfType<Button>().Select(b => (string)b.Tag));
             foreach (var section in SettingsView.Sections)

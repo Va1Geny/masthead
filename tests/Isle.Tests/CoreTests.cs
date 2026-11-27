@@ -165,9 +165,8 @@ public class ModuleHostTests
         host.Sync();
         Assert.Equal(1, builtA);
         Assert.Equal(0, builtB);
-        Assert.Equal(ModuleState.Running, host.StateOf("a"));
-        Assert.Equal(ModuleState.Stopped, host.StateOf("b"));
         Assert.NotNull(host.Get<Fake>("a"));
+        Assert.Null(host.Get<Fake>("b"));
 
         enabled["a"] = false; enabled["b"] = true;
         host.Sync();
@@ -183,10 +182,10 @@ public class ModuleHostTests
         host.Register("bad", () => new Fake("bad", failOnStart: true));
         host.Register("good", () => new Fake("good"));
         host.Sync();
-        Assert.Equal(ModuleState.Failed, host.StateOf("bad"));
-        Assert.Equal(ModuleState.Running, host.StateOf("good"));
+        Assert.Null(host.Get<Fake>("bad"));
+        Assert.NotNull(host.Get<Fake>("good"));
         host.StopAll();
-        Assert.Equal(ModuleState.Stopped, host.StateOf("good"));
+        Assert.Null(host.Get<Fake>("good"));
     }
 }
 

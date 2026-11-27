@@ -26,7 +26,7 @@ public sealed class SustainedAlert(double threshold, TimeSpan hold, TimeSpan coo
 /// System monitor (module id "sysmon"): the System tab, plus a cheap background check that shows a short pill
 /// when CPU or memory stays above 90% (CPU and memory only; every 5 s; nothing else is read in the background).
 /// </summary>
-public sealed class SystemMonitorModule(IslandWindow island) : IModule, IDisposable
+public sealed class SystemMonitorModule(IslandWindow island) : IModule
 {
     public const string TabId = "sysmon";
     const string PillId = "sysmon.alert";
@@ -94,6 +94,4 @@ public sealed class SystemMonitorModule(IslandWindow island) : IModule, IDisposa
         _sampler?.Dispose();
         _sampler = null;
     }
-
-    public void Dispose() { if (_sampler is not null) Stop(); }
 }

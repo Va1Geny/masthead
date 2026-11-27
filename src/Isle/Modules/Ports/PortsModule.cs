@@ -10,7 +10,7 @@ namespace Isle.Modules.Ports;
 /// Ports (module id "ports"): the Ports tab listing what developers' processes listen on, and a short pill when
 /// a new one starts listening ("node · :5173", click opens it in the browser). The table is read every 5 s.
 /// </summary>
-public sealed class PortsModule(IslandWindow island) : IModule, IDisposable
+public sealed class PortsModule(IslandWindow island) : IModule
 {
     public const string TabId = "ports";
     const string PillId = "ports.new";
@@ -73,6 +73,4 @@ public sealed class PortsModule(IslandWindow island) : IModule, IDisposable
         island.RemoveTab(TabId);
         _known = null;
     }
-
-    public void Dispose() => Stop();
 }
