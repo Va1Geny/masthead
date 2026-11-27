@@ -6,17 +6,12 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <LangVersion>14</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RootNamespace>Isle.Agents</RootNamespace>
     <AssemblyName>Isle.Hook</AssemblyName>
-    <Version>1.0.0</Version>
     <InvariantGlobalization>true</InvariantGlobalization>
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-    <TieredPGO>true</TieredPGO>
-    <TieredCompilationQuickJitForLoops>true</TieredCompilationQuickJitForLoops>
-    <ServerGarbageCollector>false</ServerGarbageCollector>
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>

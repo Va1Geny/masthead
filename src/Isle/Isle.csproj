@@ -6,7 +6,6 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <LangVersion>14</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -15,9 +14,6 @@
     <Product>Masthead</Product>
     <AssemblyTitle>Masthead</AssemblyTitle>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-    <InvariantGlobalization>false</InvariantGlobalization>
-    <TieredPGO>true</TieredPGO>
-    <ServerGarbageCollector>false</ServerGarbageCollector>
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
   </PropertyGroup>
 
