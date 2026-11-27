@@ -279,10 +279,13 @@ public partial class IslandWindow
         Dispatcher.InvokeAsync(() =>
         {
             if (!_hasFocus || !_expanded || !Panel.IsVisible) return;
-            if (_overlay is Views.SettingsPanel.SettingsView { IsVisible: true } settings && !settings.IsKeyboardFocusWithin)
-                settings.FocusSection();
-            else if (!Panel.IsKeyboardFocusWithin)
-                (_overlay is { IsVisible: true } view ? view : Panel).MoveFocus(new TraversalRequest(FocusNavigationDirection.First));
+            if (_overlay is Views.SettingsPanel.SettingsView { IsVisible: true } settings)
+            {
+                if (!settings.IsKeyboardFocusWithin) settings.FocusSection();
+            }
+            // Keep keys on the window. Activation restores WPF's logical focus (the last tab button used), and the
+            // hotkey makes it look keyboard-driven, so a control here draws a focus ring. j/k/Tab start from here anyway.
+            else Focus();
         }, DispatcherPriority.Loaded);
     }
 
