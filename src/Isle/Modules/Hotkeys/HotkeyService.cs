@@ -1,4 +1,3 @@
-using System.Windows.Threading;
 using Isle.Core;
 
 namespace Isle.Modules.Hotkeys;
@@ -89,9 +88,7 @@ public sealed class HotkeyService
     {
         public required string Id, TitleKey, Default;
         public required Action Pressed;
-        public Action? Released;
         public int NativeId;
-        public Gesture Gesture;
         public bool Registered;
     }
 
@@ -99,19 +96,13 @@ public sealed class HotkeyService
     readonly List<string> _order = [];
     IntPtr _hwnd;
     int _nextId = 0x4000;
-    DispatcherTimer? _holdTimer;
-    Entry? _held;
     bool _suspended;
-
-    public event Action? Changed;
-    public event Action<string>? RegistrationFailed;
 
     /// <summary>Called by the island once its window handle exists; registers everything declared so far.</summary>
     public void Attach(IntPtr hwnd)
     {
         _hwnd = hwnd;
         foreach (var e in _entries.Values) Bind(e);
-        Changed?.Invoke();
     }
 
     /// <summary>Temporarily releases every hotkey (while the settings panel records a new combination) and takes them back.</summary>
@@ -128,20 +119,18 @@ public sealed class HotkeyService
 
     public void Detach()
     {
-        foreach (var e in _entries.Values) Unbind(e, releaseHold: false);
+        foreach (var e in _entries.Values) Unbind(e);
         _hwnd = IntPtr.Zero;
         _suspended = false;
     }
 
-    /// <param name="released">Optional: called when the key is let go (hold-to-talk).</param>
-    public void Register(string id, string titleKey, string defaultGesture, Action pressed, Action? released = null)
+    public void Register(string id, string titleKey, string defaultGesture, Action pressed)
     {
         if (_entries.TryGetValue(id, out var old)) Unbind(old);
         else _order.Add(id);
-        var e = new Entry { Id = id, TitleKey = titleKey, Default = defaultGesture, Pressed = pressed, Released = released, NativeId = _nextId++ };
+        var e = new Entry { Id = id, TitleKey = titleKey, Default = defaultGesture, Pressed = pressed, NativeId = _nextId++ };
         _entries[id] = e;
         Bind(e);
-        Changed?.Invoke();
     }
 
     /// <summary>Changes a hotkey ("" = disabled, null = back to default) and saves it.</summary>
@@ -162,11 +151,9 @@ public sealed class HotkeyService
             if (hadOverride) s.Hotkeys[id] = previous!;
             else s.Hotkeys.Remove(id);
             Bind(e);
-            Changed?.Invoke();
             return false;
         }
         s.Save("Hotkeys");
-        Changed?.Invoke();
         return true;
     }
 
@@ -180,24 +167,17 @@ public sealed class HotkeyService
     {
         Unbind(e);
         e.Registered = false;
-        e.Gesture = default;
         if (_hwnd == IntPtr.Zero) return;
         var text = GestureText(e);
         if (text.Length == 0 || !Gesture.TryParse(text, out var g)) return;
-        e.Gesture = g;
         e.Registered = Native.RegisterHotKey(_hwnd, e.NativeId, g.Modifiers | Native.MOD_NOREPEAT, g.Key);
-        if (!e.Registered)
-        {
-            Logger.Warn($"hotkey {e.Id} ({text}) could not be registered (in use by another app?)");
-            RegistrationFailed?.Invoke(text);
-        }
+        if (!e.Registered) Logger.Warn($"hotkey {e.Id} ({text}) could not be registered (in use by another app?)");
     }
 
-    void Unbind(Entry e, bool releaseHold = true)
+    void Unbind(Entry e)
     {
         if (e.Registered && _hwnd != IntPtr.Zero) Native.UnregisterHotKey(_hwnd, e.NativeId);
         e.Registered = false;
-        if (ReferenceEquals(_held, e)) StopHold(fire: releaseHold);
     }
 
     /// <summary>Feed WM_HOTKEY here. Returns true when a shortcut is handled.</summary>
@@ -207,39 +187,10 @@ public sealed class HotkeyService
         foreach (var e in _entries.Values)
         {
             if (e.NativeId != nativeId) continue;
-            try
-            {
-                e.Pressed();
-                if (e.Released is not null) StartHold(e);
-            }
+            try { e.Pressed(); }
             catch (Exception ex) { Logger.Error($"hotkey {e.Id}", ex); }
             return true;
         }
         return false;
-    }
-
-    // RegisterHotKey reports no key-up, so while a hold-hotkey is down we watch the key state (30 ms, only during the hold).
-    void StartHold(Entry e)
-    {
-        StopHold(fire: false);
-        _held = e;
-        _holdTimer ??= new DispatcherTimer(TimeSpan.FromMilliseconds(30), DispatcherPriority.Input, (_, _) =>
-        {
-            if (_held is null) { _holdTimer!.Stop(); return; }
-            if ((Native.GetAsyncKeyState((int)_held.Gesture.Key) & 0x8000) == 0) StopHold(fire: true);
-        }, Dispatcher.CurrentDispatcher);
-        _holdTimer.Start();
-    }
-
-    void StopHold(bool fire)
-    {
-        var e = _held;
-        _held = null;
-        _holdTimer?.Stop();
-        if (fire && e?.Released is not null)
-        {
-            try { e.Released(); }
-            catch (Exception ex) { Logger.Error($"hotkey {e.Id} release", ex); }
-        }
     }
 }

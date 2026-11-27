@@ -1,6 +1,5 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:v="clr-namespace:Isle.Views"
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
     <!-- Isle's flat control set. Colours come from Core.Theme (DynamicResource *Brush keys). 8-px grid. -->
 
@@ -489,22 +488,5 @@
         <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
         <Setter Property="CornerRadius" Value="12" />
         <Setter Property="Padding" Value="12,8" />
-    </Style>
-
-    <!-- progress -->
-    <Style TargetType="ProgressBar">
-        <Setter Property="Height" Value="4" />
-        <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
-        <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ProgressBar">
-                    <Grid>
-                        <Border x:Name="PART_Track" CornerRadius="2" Background="{TemplateBinding Background}" />
-                        <Border x:Name="PART_Indicator" CornerRadius="2" Background="{TemplateBinding Foreground}" HorizontalAlignment="Left" />
-                    </Grid>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
     </Style>
 </ResourceDictionary>

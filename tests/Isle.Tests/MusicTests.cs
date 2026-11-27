@@ -12,23 +12,6 @@ public class PlaybackTests
 {
     static readonly DateTimeOffset T0 = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
-    [Fact]
-    public void Extrapolates_only_while_playing_and_clamps()
-    {
-        var d = TimeSpan.FromSeconds(100);
-        Assert.Equal(TimeSpan.FromSeconds(15), PlaybackMath.Extrapolate(TimeSpan.FromSeconds(10), T0, T0.AddSeconds(5), true, 1, d));
-        Assert.Equal(TimeSpan.FromSeconds(10), PlaybackMath.Extrapolate(TimeSpan.FromSeconds(10), T0, T0.AddSeconds(5), false, 1, d));
-        Assert.Equal(TimeSpan.FromSeconds(20), PlaybackMath.Extrapolate(TimeSpan.FromSeconds(10), T0, T0.AddSeconds(5), true, 2, d));
-        Assert.Equal(d, PlaybackMath.Extrapolate(TimeSpan.FromSeconds(99), T0, T0.AddSeconds(30), true, 1, d));
-        Assert.Equal(TimeSpan.FromSeconds(10), PlaybackMath.Extrapolate(TimeSpan.FromSeconds(10), T0, T0.AddSeconds(-3), true, 1, d)); // clock skew
-    }
-
-    [Theory]
-    [InlineData(0, "0:00")]
-    [InlineData(65, "1:05")]
-    [InlineData(3723, "1:02:03")]
-    public void Formats_time(int seconds, string expected) => Assert.Equal(expected, PlaybackMath.Format(TimeSpan.FromSeconds(seconds)));
-
     [Theory]
     [InlineData("Spotify.exe", "Spotify")]
     [InlineData("Microsoft.ZuneMusic_8wekyb3d8bbwe!Microsoft.ZuneMusic", "Media Player")]

@@ -20,7 +20,7 @@ Measured the arranged WPF controls at 80% in isolated English and Ukrainian snap
 | Control | Result at 80% |
 |---|---|
 | Navigation | Icon-only tabs measured 27.2 × 24 DIPs. More and Settings measured 24 × 24. The selected tab, overflow list and Settings navigation used 12-DIP text. The active Ukrainian Hotkeys label fit in full. |
-| Sliders | The Settings scale and Music seek controls have 24-DIP hit areas at 80%. The visible thumb and rail retain their original sizes. Routed drag and keyboard checks passed. |
+| Sliders | The Settings scale slider has 24-DIP hit areas at 80%. The visible thumb and rail retain their original sizes. Routed drag and keyboard checks passed. |
 
 ## Developer edition
 

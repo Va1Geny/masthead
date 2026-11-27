@@ -33,13 +33,13 @@ Static access points: `App.Host` (modules), `App.Island` (the window), `Settings
 - **Logger** — `log.txt`, rotates to `log.txt.1` at 1 MB, never throws. No secrets/user content.
 - **JsonStore** — `Load<T>` / `Save<T>` / `WriteAtomic` (temp + replace) / `BackupCorrupt` (`*.bak-<timestamp>`). Every store uses it.
 - **Settings** — `settings.json`; typed fields + `Modules` (id → enabled), `Hotkeys`, `Options` (free-form per-module
-  strings). `Settings.Current`, `Save(changedName)` raises `Settings.Changed`. `Migrate()` upgrades old versions.
+  strings). `Settings.Current`, `Save(changedName)` raises `Settings.Changed`.
 - **Strings** — EN/UK dictionaries (`Strings.Data.cs`), `Strings.T(key)`, XAML `{core:Loc key}` (live language switch).
 - **EventBus** — typed publish/subscribe between modules and views.
 - **ModuleHost / IModule** — modules are registered as factories, constructed and started only when enabled
-  (`Sync()`), stopped/disposed when disabled; a throwing module becomes `Failed` without affecting others.
+  (`Sync()`), stopped when disabled; a module that throws on start stays stopped without affecting others.
 - **Screens** — monitor enumeration (physical pixels, DPI scale); `Selected(index)`.
-- **Autostart** — `HKCU\...\Run` value `Isle`.
+- **Autostart** — `HKCU\...\Run` value `Isle` (points at `Isle.exe`; re-pointed on start-up while enabled).
 - **Theme** — Dark/Light/System palette as brushes in `Application.Resources` (`BgBrush`, `FgBrush`, `FgDimBrush`,
   `SurfaceBrush`, `AccentBrush`, …), `Apply()` swaps them live; `SetAccent(color)` animates the accent (album art).
 - **Spring** — damped spring value used by the island's motion.
@@ -58,14 +58,14 @@ Static access points: `App.Host` (modules), `App.Island` (the window), `Settings
 Shell (`src/Isle/Modules`): Agents, Hotkeys, Tray, Media (Music). Developer modules: see below.
 
 - **Media** (`media`, `Modules/Media`) — `MediaSession` wraps GSMTC (manager + chosen session events, marshalled to the
-  UI thread; a session without a title yet publishes an empty-title state) and exposes `IMediaSource` (`Current:
-  MediaState`, `Changed`, `PlayPause/Next/Previous/Seek`). `MediaModule` shows the mini player (`Views/Music/MiniPlayerPill`:
+  UI thread; a session without a title yet publishes an empty-title state) and exposes `Current: MediaState`,
+  `Changed` and `PlayPause/Next/Previous`. `MediaModule` shows the mini player (`Views/Music/MiniPlayerPill`:
   art, title — artist, play/pause; "App — loading…" while the session has no track) as the `music` pill item (compact
   equalizer for the side slot) and the `music.track` banner, and sets `Theme.SetAccent` from the art. The mini player
-  stays while paused. Pure helpers: `PlaybackMath`, `ArtColors`. `FakeMediaSource` + `MediaSnapshots` provide snapshot states.
-- **Hotkeys** (`HotkeyService`, owned by the island, not a module) — `Register(id, titleKey, default, pressed, released?)`,
+  stays while paused. Pure helpers: `PlaybackMath`, `ArtColors`. `MediaSnapshots` provides snapshot states (demo track).
+- **Hotkeys** (`HotkeyService`, owned by the island, not a module) — `Register(id, titleKey, default, pressed)`,
   `Rebind`, `List()` for the settings table; user overrides in `Settings.Hotkeys`; failures logged, never fatal.
-  Hold-hotkeys poll the key state at 30 ms only while held. Default: `toggle` = Win+Alt+Space.
+  Default: `toggle` = Win+Alt+I (Win+Alt+Space is PowerToys Command Palette).
 - **Tray** (`tray`) — notification-area icon (`Shell_NotifyIcon`, hidden message window), native menu:
   Show/Hide, Settings, Start with Windows, Quit. Icon drawn by `TrayIcon.Render`. Re-adds itself on `TaskbarCreated`.
 

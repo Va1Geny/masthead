@@ -7,24 +7,11 @@ using GsmtcSession = Windows.Media.Control.GlobalSystemMediaTransportControlsSes
 
 namespace Isle.Modules.Media;
 
-/// <summary>What views need from the media source (real: <see cref="MediaSession"/>; fakes for snapshots/tests).</summary>
-public interface IMediaSource
-{
-    /// <summary>Current track, or null when nothing is available. UI thread.</summary>
-    MediaState? Current { get; }
-    /// <summary>Raised on the UI thread when <see cref="Current"/> changes.</summary>
-    event Action? Changed;
-    void PlayPause();
-    void Next();
-    void Previous();
-    void Seek(TimeSpan position);
-}
-
 /// <summary>
 /// Windows Global System Media Transport Controls, fully event-driven: manager (current session, sessions list) and
-/// the chosen session (media properties, playback info, timeline). All WinRT callbacks are marshalled to the UI thread.
+/// the chosen session (media properties, playback info). All WinRT callbacks are marshalled to the UI thread.
 /// </summary>
-public sealed class MediaSession : IMediaSource, IDisposable
+public sealed class MediaSession : IDisposable
 {
     readonly Dispatcher _ui;
     GsmtcManager? _manager;
@@ -37,7 +24,9 @@ public sealed class MediaSession : IMediaSource, IDisposable
     int _refreshVersion;
     bool _disposed;
 
+    /// <summary>Current track, or null when nothing is available. UI thread.</summary>
     public MediaState? Current => _current;
+    /// <summary>Raised on the UI thread when <see cref="Current"/> changes.</summary>
     public event Action? Changed;
 
     public MediaSession(Dispatcher ui) => _ui = ui;
@@ -72,7 +61,7 @@ public sealed class MediaSession : IMediaSource, IDisposable
             }
             var index = PlaybackMath.Choose(infos);
             var chosen = index >= 0 ? sessions[index] : null;
-            if (!SameSession(chosen, _session))
+            if (!ReferenceEquals(chosen, _session))
             {
                 Unsubscribe();
                 _session = chosen;
@@ -81,16 +70,12 @@ public sealed class MediaSession : IMediaSource, IDisposable
                 {
                     _session.MediaPropertiesChanged += OnSessionChanged;
                     _session.PlaybackInfoChanged += OnSessionChanged;
-                    _session.TimelinePropertiesChanged += OnSessionChanged;
                 }
             }
             Refresh();
         }
         catch (Exception ex) { Logger.Error("media choose session", ex); }
     }
-
-    static bool SameSession(GsmtcSession? a, GsmtcSession? b) =>
-        ReferenceEquals(a, b);
 
     static bool IsPlaying(GsmtcSession s)
     {
@@ -112,7 +97,6 @@ public sealed class MediaSession : IMediaSource, IDisposable
         {
             _session.MediaPropertiesChanged -= OnSessionChanged;
             _session.PlaybackInfoChanged -= OnSessionChanged;
-            _session.TimelinePropertiesChanged -= OnSessionChanged;
         }
         catch (Exception ex) { Logger.Error("media unsubscribe", ex); }
         _session = null;
@@ -129,7 +113,6 @@ public sealed class MediaSession : IMediaSource, IDisposable
             var props = await s.TryGetMediaPropertiesAsync();
             if (version != _refreshVersion || _disposed) return;
             var playback = s.GetPlaybackInfo();
-            var timeline = s.GetTimelineProperties();
             var title = props?.Title ?? "";
             if (title.Length == 0)
             {
@@ -150,8 +133,6 @@ public sealed class MediaSession : IMediaSource, IDisposable
                 _artAccent = _art is not null ? ArtColors.Dominant(_art) : ArtColors.Readable(ArtColors.PlaceholderColors(title).A);
             }
 
-            var duration = timeline is null ? TimeSpan.Zero : timeline.EndTime - timeline.StartTime;
-            var controls = playback?.Controls;
             Publish(new MediaState
             {
                 Title = title,
@@ -159,13 +140,6 @@ public sealed class MediaSession : IMediaSource, IDisposable
                 Album = album,
                 Source = PlaybackMath.FriendlySource(s.SourceAppUserModelId),
                 IsPlaying = playback?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing,
-                CanSeek = controls?.IsPlaybackPositionEnabled == true && duration > TimeSpan.Zero,
-                CanNext = controls?.IsNextEnabled ?? true,
-                CanPrev = controls?.IsPreviousEnabled ?? true,
-                Duration = duration < TimeSpan.Zero ? TimeSpan.Zero : duration,
-                Position = timeline is null ? TimeSpan.Zero : timeline.Position - timeline.StartTime,
-                PositionStamp = timeline?.LastUpdatedTime ?? DateTimeOffset.Now,
-                Rate = playback?.PlaybackRate ?? 1.0,
                 Art = _art,
                 Accent = _artAccent,
             });
@@ -215,20 +189,6 @@ public sealed class MediaSession : IMediaSource, IDisposable
     public void PlayPause() => Run(s => s.TryTogglePlayPauseAsync().AsTask(), "play/pause");
     public void Next() => Run(s => s.TrySkipNextAsync().AsTask(), "next");
     public void Previous() => Run(s => s.TrySkipPreviousAsync().AsTask(), "previous");
-
-    public void Seek(TimeSpan position)
-    {
-        if (_current is not null)
-        {
-            // show the new position immediately; the app's timeline event confirms it later
-            Publish(_current with { Position = position, PositionStamp = DateTimeOffset.Now });
-        }
-        Run(s =>
-        {
-            var start = s.GetTimelineProperties()?.StartTime ?? TimeSpan.Zero;
-            return s.TryChangePlaybackPositionAsync((start + position).Ticks).AsTask();
-        }, "seek");
-    }
 
     async void Run(Func<GsmtcSession, Task<bool>> action, string what)
     {

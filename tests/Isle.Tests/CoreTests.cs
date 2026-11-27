@@ -1,5 +1,4 @@
 using System.IO;
-using System.Text.Json.Nodes;
 using Isle.Core;
 using Isle.Modules.Tray;
 
@@ -89,17 +88,6 @@ public class SettingsTests
         Assert.Equal("Dark", s.Theme);
         Assert.Equal("Kyiv", s.Opt("weather.city"));
         Assert.False(File.Exists(path + ".bak"));
-    }
-
-    [Fact]
-    public void Migrates_version_0_fields()
-    {
-        var obj = JsonNode.Parse("""{ "DarkMode": true, "UiScale": 150 }""")!.AsObject();
-        Settings.Migrate(obj);
-        Assert.Equal("Dark", obj["Theme"]!.GetValue<string>());
-        Assert.Equal(1.5, obj["Scale"]!.GetValue<double>());
-        Assert.Equal(Settings.CurrentVersion, obj["Version"]!.GetValue<int>());
-        Assert.False(obj.ContainsKey("DarkMode"));
     }
 
     [Fact]

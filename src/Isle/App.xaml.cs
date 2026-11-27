@@ -15,8 +15,6 @@ public partial class App : Application
 
     public static ModuleHost Host { get; } = new();
     public static IslandWindow? Island { get; private set; }
-    /// <summary>True while running the --snapshot renderer.</summary>
-    public static bool IsSnapshot { get; private set; }
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -26,7 +24,6 @@ public partial class App : Application
 
         if (e.Args.Length > 0 && e.Args[0] == "--snapshot")
         {
-            IsSnapshot = true;
             System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
             Shutdown(IslandWindow.RunSnapshot(e.Args));
             return;

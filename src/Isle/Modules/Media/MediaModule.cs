@@ -63,7 +63,7 @@ public sealed class MediaModule(IslandWindow island) : IModule
     void ShowPill(MediaState cur)
     {
         if (_session is null) return;
-        _mini ??= new MiniPlayerPill(_session);
+        _mini ??= new MiniPlayerPill(_session.Previous, _session.PlayPause, _session.Next);
         _mini.Update(cur);
         if (_pillShown) return;
         _pillShown = true;

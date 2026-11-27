@@ -1,15 +1,8 @@
-using System.Text.Json;
-using System.Text.Json.Nodes;
-
 namespace Isle.Core;
 
 /// <summary>User settings (settings.json). One instance: <see cref="Current"/>. Call <see cref="Save"/> after changes.</summary>
 public sealed class Settings
 {
-    public const int CurrentVersion = 1;
-
-    public int Version { get; set; } = CurrentVersion;
-
     // Appearance
     public string Theme { get; set; } = "System";      // Dark | Light | System
     public double Scale { get; set; } = 1.0;           // 0.8 .. 2.0
@@ -65,51 +58,9 @@ public sealed class Settings
 
     public static Settings Load(string path)
     {
-        try
-        {
-            if (System.IO.File.Exists(path))
-            {
-                var node = JsonNode.Parse(System.IO.File.ReadAllText(path),
-                    documentOptions: new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
-                if (node is JsonObject obj)
-                {
-                    Migrate(obj);
-                    var s = obj.Deserialize<Settings>(JsonStore.Options) ?? new Settings();
-                    s.Normalize();
-                    return s;
-                }
-                throw new JsonException("settings root is not an object");
-            }
-        }
-        catch (JsonException)
-        {
-            JsonStore.BackupCorrupt(path);
-        }
-        catch (Exception ex)
-        {
-            Logger.Error("load settings", ex);
-        }
-        return new Settings();
-    }
-
-    /// <summary>Upgrades older documents in place. Version 0 (pre-release) used "DarkMode": bool and "UiScale": percent.</summary>
-    internal static void Migrate(JsonObject obj)
-    {
-        var version = obj["Version"]?.GetValue<int>() ?? 0;
-        if (version < 1)
-        {
-            if (obj["DarkMode"] is JsonValue dm && dm.TryGetValue<bool>(out var dark))
-            {
-                obj["Theme"] = dark ? "Dark" : "Light";
-                obj.Remove("DarkMode");
-            }
-            if (obj["UiScale"] is JsonValue us && us.TryGetValue<double>(out var pct))
-            {
-                obj["Scale"] = pct / 100.0;
-                obj.Remove("UiScale");
-            }
-        }
-        obj["Version"] = CurrentVersion;
+        var s = JsonStore.Load<Settings>(path);
+        s.Normalize();
+        return s;
     }
 
     void Normalize()
@@ -123,6 +74,5 @@ public sealed class Settings
         Hotkeys ??= [];
         Options ??= [];
         LastTab ??= "";
-        Version = CurrentVersion;
     }
 }

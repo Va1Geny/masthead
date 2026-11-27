@@ -3,7 +3,7 @@ using System.Windows.Media.Imaging;
 
 namespace Isle.Modules.Media;
 
-/// <summary>Immutable snapshot of the chosen media session. Position is extrapolated with <see cref="PositionAt"/>.</summary>
+/// <summary>Immutable snapshot of the chosen media session.</summary>
 public sealed record MediaState
 {
     public required string Title { get; init; }
@@ -12,14 +12,6 @@ public sealed record MediaState
     /// <summary>Friendly source name ("Spotify", "Chrome").</summary>
     public string Source { get; init; } = "";
     public bool IsPlaying { get; init; }
-    public bool CanSeek { get; init; }
-    public bool CanPrev { get; init; } = true;
-    public bool CanNext { get; init; } = true;
-    public TimeSpan Duration { get; init; }
-    /// <summary>Position reported by the app at <see cref="PositionStamp"/>.</summary>
-    public TimeSpan Position { get; init; }
-    public DateTimeOffset PositionStamp { get; init; }
-    public double Rate { get; init; } = 1.0;
     /// <summary>Album art (frozen), or null — views then draw <see cref="ArtColors.Placeholder"/>.</summary>
     public BitmapSource? Art { get; init; }
     /// <summary>Accent colour taken from the art (or from the title hash when there is no art).</summary>
@@ -28,32 +20,10 @@ public sealed record MediaState
     /// <summary>Identity of the track (not of its play state) — changes mean "new track".</summary>
     public string TrackKey => $"{Artist}\u001f{Title}\u001f{Album}";
 
-    public TimeSpan PositionAt(DateTimeOffset now) => PlaybackMath.Extrapolate(Position, PositionStamp, now, IsPlaying, Rate, Duration);
 }
 
 public static class PlaybackMath
 {
-    /// <summary>Local position estimate between the app's (rare) timeline updates, clamped to [0, duration].</summary>
-    public static TimeSpan Extrapolate(TimeSpan position, DateTimeOffset stamp, DateTimeOffset now, bool playing, double rate, TimeSpan duration)
-    {
-        var p = position;
-        if (playing && stamp != default)
-        {
-            var elapsed = now - stamp;
-            if (elapsed > TimeSpan.Zero) p += TimeSpan.FromTicks((long)(elapsed.Ticks * (rate <= 0 ? 1 : rate)));
-        }
-        if (p < TimeSpan.Zero) p = TimeSpan.Zero;
-        if (duration > TimeSpan.Zero && p > duration) p = duration;
-        return p;
-    }
-
-    /// <summary>"3:07", or "1:02:03" for long media.</summary>
-    public static string Format(TimeSpan t)
-    {
-        if (t < TimeSpan.Zero) t = TimeSpan.Zero;
-        return t.TotalHours >= 1 ? $"{(int)t.TotalHours}:{t.Minutes:00}:{t.Seconds:00}" : $"{(int)t.TotalMinutes}:{t.Seconds:00}";
-    }
-
     /// <summary>Friendly app name from an AppUserModelId: "Spotify.exe" → "Spotify", "Microsoft.ZuneMusic_8wekyb3d8bbwe!Microsoft.ZuneMusic" → "Media Player".</summary>
     public static string FriendlySource(string? appId)
     {
