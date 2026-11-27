@@ -63,7 +63,7 @@ One line each: decision — why.
 - Text boxes take focus by activating the window on click (`AcquireFocus`); focus is handed back to the previous window on collapse.
 - Esc is a temporary global hotkey registered only while expanded (the island is not activated, so it gets no key events otherwise).
 - `IslandWindow.Foreground` renamed to `Watcher` (hid `Control.Foreground`); `Views.Icon` is fully qualified inside the window (clashes with `Window.Icon`).
-- Toggle hotkey (Win+Alt+Space) expands/collapses the panel and un-hides a user-hidden island; tray Show/Hide uses a "user" hide reason so it composes with fullscreen/excluded hiding.
+- Toggle hotkey (Win+Alt+I; Win+Alt+Space collides with PowerToys Command Palette) expands/collapses the panel and un-hides a user-hidden island; tray Show/Hide uses a "user" hide reason so it composes with fullscreen/excluded hiding.
 - Snapshot renderer: off-screen `IslandWindow(snapshotMode: true)`, settings changed in memory only, rendered at 192 DPI on a grey backdrop. States are a registry (`SnapshotStates`) so later modules add theirs.
 
 ## M2

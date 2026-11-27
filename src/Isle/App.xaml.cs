@@ -81,7 +81,7 @@ public partial class App : Application
             if (Island is { } island) Modules.Setup.SetupFlow.ShowOnFirstExpand(island);
             Host.Sync();
             if (Island is not null) Island.SettingsRequested += () => OpenSettings();
-            Island?.Hotkeys.Register("toggle", "hotkey.toggle", "Win+Alt+Space", () => { if (Island is null) return; Island.SetHidden("user", false); Island.Toggle(); });
+            Island?.Hotkeys.Register("toggle", "hotkey.toggle", "Win+Alt+I", () => { if (Island is null) return; Island.SetHidden("user", false); Island.Toggle(); });
 
             SystemEvents.PowerModeChanged += OnPowerModeChanged;
             Logger.Info($"Isle started, {Host.Ids.Count} module(s) registered");

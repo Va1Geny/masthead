@@ -164,6 +164,7 @@ public partial class IslandWindow
 
         var old = _currentTab is not null && _views.TryGetValue(_currentTab, out var o) ? o : null;
         _currentTab = id;
+        _focusAnchor = null; // a spot in the old tab means nothing in this one
         if (old is not null && !ReferenceEquals(old, view))
         {
             if (_expanded) Safe(() => (old as ITabView)?.OnHidden(), "tab hidden");

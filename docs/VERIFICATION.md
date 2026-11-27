@@ -57,7 +57,7 @@ Methods: `auto-test` (xUnit), `snapshot` (PNG looked at), `live` (ran the real a
 | UI scale 80–200% | snapshot at 150% + manual-needed for the live preview | ok; Settings → General → Size: drag the slider, the island resizes as you go |
 | Fullscreen auto-hide | manual-needed | Play a video fullscreen / press F11 in a browser → island disappears; exit → it returns |
 | Excluded apps | auto-test (name matching) + manual-needed | Settings → General → "Hide while these apps are in front" → type `notepad`, Enter → island hides while Notepad is in front |
-| Global hotkeys infrastructure (RegisterHotKey, failures non-fatal, shown in Settings → Hotkeys) | auto-test (gesture parsing) + manual-needed | Press Win+Alt+Space → panel opens/closes |
+| Global hotkeys infrastructure (RegisterHotKey, failures non-fatal, shown in Settings → Hotkeys) | auto-test (gesture parsing) + manual-needed | Press Win+Alt+I → panel opens/closes; j/k rows, h/l and 1-9 tabs, q closes |
 | Esc collapses | manual-needed | Expand, press Esc |
 | Pill priority queue (selection, sharing, banners) | auto-test | ok |
 | --snapshot tool | live | `Isle.exe --snapshot all <dir>` renders every state × theme × language |

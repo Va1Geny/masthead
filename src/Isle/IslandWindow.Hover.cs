@@ -47,14 +47,10 @@ public partial class IslandWindow
             if (e.Key == Key.Tab && Keyboard.Modifiers == ModifierKeys.None && Keyboard.FocusedElement is RadioButton &&
                 Tabs.IsKeyboardFocusWithin && TabContent.MoveFocus(new TraversalRequest(FocusNavigationDirection.First)))
                 e.Handled = true;
-            if (_hasFocus && _expanded && _overlay?.Visibility != Visibility.Visible && Keyboard.Modifiers == ModifierKeys.Control &&
-                e.Key >= Key.D1 && e.Key <= Key.D9)
-            {
-                var tabs = TabList.OrderBy(t => t.Order).ToList();
-                var index = e.Key - Key.D1;
-                if (index < tabs.Count) { SelectTab(tabs[index].Id, animate: true); e.Handled = true; }
-            }
+            if (!e.Handled && _hasFocus && _expanded && _overlay?.Visibility != Visibility.Visible && !MoreOverlay.IsVisible)
+                e.Handled = VimKey(e.Key, Keyboard.Modifiers);
         };
+        TabContent.GotKeyboardFocus += (_, e) => { if (e.NewFocus is UIElement el) _focusAnchor = el.TranslatePoint(new Point(), TabContent); };
         Deactivated += (_, _) => OnDeactivated();
         PillLayer.MouseLeftButtonUp += (_, e) =>
         {
@@ -66,6 +62,77 @@ public partial class IslandWindow
         Loaded += (_, _) => CheckForeground();
         Panel.IsVisibleChanged += (_, _) => FocusExpandedPanel();
         KeyboardNavigation.SetTabNavigation(Panel, KeyboardNavigationMode.Cycle);
+    }
+
+    /// <summary>
+    /// Keyboard-only navigation for vim users: j/k rows, h/l tabs, 1-9 (or Ctrl+1-9) tabs, q close.
+    /// Letters are left alone while a text box has focus.
+    /// </summary>
+    bool VimKey(Key key, ModifierKeys mods)
+    {
+        if (mods == ModifierKeys.Control && key is >= Key.D1 and <= Key.D9) return TabAt(key - Key.D1);
+        if (Keyboard.FocusedElement is TextBoxBase or PasswordBox || mods != ModifierKeys.None) return false;
+        switch (key)
+        {
+            case >= Key.D1 and <= Key.D9: return TabAt(key - Key.D1);
+            case Key.J: return FocusInView(FocusNavigationDirection.Down);
+            case Key.K: return FocusInView(FocusNavigationDirection.Up);
+            case Key.H or Key.L:
+                var tabs = TabList.OrderBy(t => t.Order).ToList();
+                var at = tabs.FindIndex(t => t.Id == _currentTab);
+                return tabs.Count > 0 && TabAt((at + (key == Key.L ? 1 : tabs.Count - 1)) % tabs.Count);
+            case Key.Q: Collapse(); return true;
+        }
+        return false;
+    }
+
+    FrameworkElement? CurrentView => _currentTab is null ? null : TabViewFor(_currentTab);
+
+    bool TabAt(int index)
+    {
+        var tabs = TabList.OrderBy(t => t.Order).ToList();
+        if (index >= tabs.Count) return false;
+        SelectTab(tabs[index].Id, animate: true);
+        // Keep keys on the window: focus left on the old tab's control or on the previous tab button drew a focus ring
+        // (and a tooltip) away from the selected tab. j/k start at the new tab's first control anyway (FocusInView).
+        Focus();
+        return true;
+    }
+
+    Point? _focusAnchor; // where the last focused control in the tab sat (TabContent coordinates)
+
+    /// <summary>Moves focus within the current tab. From the tab bar j/k start at its first control.</summary>
+    bool FocusInView(FocusNavigationDirection dir)
+    {
+        if (CurrentView is not { } view) return false;
+        if (!(view.IsKeyboardFocusWithin && Keyboard.FocusedElement is Control c && IsStop(c)))
+        {
+            // Focus is not on a control in the tab. Unless the user went to the tab bar, the view rebuilt its rows
+            // under the focused control (Ports every 2 s, Projects every 15 s): resume at the control now in its place.
+            var resume = !Tabs.IsKeyboardFocusWithin && _focusAnchor is { } at ? Stops(view).MinBy(s => Distance(s, at)) : null;
+            if (resume is null) { view.MoveFocus(new TraversalRequest(FocusNavigationDirection.First)); return true; }
+            resume.Focus();
+        }
+        (Keyboard.FocusedElement as UIElement)?.MoveFocus(new TraversalRequest(dir));
+        return true;
+    }
+
+    static bool IsStop(Control c) => c is not ScrollViewer && c.Focusable && c.IsTabStop && c.IsVisible && c.IsEnabled;
+
+    static IEnumerable<Control> Stops(DependencyObject d)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(d); i++)
+        {
+            var child = VisualTreeHelper.GetChild(d, i);
+            if (child is Control c && IsStop(c)) yield return c;
+            foreach (var s in Stops(child)) yield return s;
+        }
+    }
+
+    double Distance(Control c, Point at)
+    {
+        var p = c.TranslatePoint(new Point(), TabContent);
+        return Math.Abs(p.Y - at.Y) * 1000 + Math.Abs(p.X - at.X); // same row first, then same column
     }
 
     void EngagePointer()
