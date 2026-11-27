@@ -71,6 +71,14 @@ public partial class IslandWindow : Window
         _source = HwndSource.FromHwnd(_hwnd);
         _source?.AddHook(WndProc);
         ApplyExStyle();
+        // Win+D, Win+Down or a launcher started minimized can minimize the island; Windows then parks it as a
+        // 160x28 stub at a screen edge. Restore without taking focus.
+        StateChanged += (_, _) =>
+        {
+            if (WindowState != WindowState.Minimized) return;
+            Native.ShowWindow(_hwnd, Native.SW_SHOWNOACTIVATE);
+            Reposition();
+        };
         Reposition();
         Hotkeys.Attach(_hwnd);
         Watcher.Changed += OnForegroundChanged;
