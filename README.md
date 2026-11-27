@@ -75,7 +75,21 @@ developer features below, and nothing else.
 - **Log watcher** — the first new `ERROR` / `Exception` line of your log files in the pill.
 - **Kubernetes** — a red pill while kubectl's current context looks like production.
 - Settings in English and Ukrainian: theme, size, shape (notch or pill), monitor, apps to hide behind, the show/hide
-  hotkey (<kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>Space</kbd>) and per-module options.
+  hotkey and per-module options.
+
+## Keyboard
+
+| Keys | Action |
+|---|---|
+| <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>I</kbd> | Show / hide the island (global; rebind or disable in **Settings → Hotkeys**) |
+| <kbd>Esc</kbd> or <kbd>Q</kbd> | Close the panel (<kbd>Esc</kbd> closes the More list first) |
+| <kbd>J</kbd> / <kbd>K</kbd> | Next / previous row in the current tab |
+| <kbd>H</kbd> / <kbd>L</kbd>, <kbd>←</kbd> / <kbd>→</kbd> on the tab bar | Previous / next tab |
+| <kbd>1</kbd>–<kbd>9</kbd> or <kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> | Jump to tab N |
+| <kbd>Tab</kbd> on the selected tab | Move into that tab's content |
+
+Panel keys work while the panel is open and focused; letters and digits are ignored while a text box has focus
+(<kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> still works).
 
 No accounts, no telemetry. Everything lives in `%AppData%\Isle\` (override with `ISLE_DATA_DIR`). Config files of
 other tools (`~/.ssh`, `~/.aws`, `~/.azure`, gcloud, `~/.kube`, glab) are only read, never written. The network is used
