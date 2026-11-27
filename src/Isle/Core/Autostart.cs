@@ -29,8 +29,7 @@ public static class Autostart
             if (enabled)
             {
                 if (Environment.ProcessPath is not { } app) return;
-                var launcher = Path.ChangeExtension(app, ".Launcher.exe");
-                key.SetValue(ValueName, $"\"{(File.Exists(launcher) ? launcher : app)}\"");
+                key.SetValue(ValueName, $"\"{app}\"");
             }
             else key.DeleteValue(ValueName, throwOnMissingValue: false);
         }

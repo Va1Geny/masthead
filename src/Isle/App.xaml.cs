@@ -47,6 +47,7 @@ public partial class App : Application
 
         Strings.Language = Settings.Current.Language;
         Theme.Apply();
+        if (Autostart.IsEnabled) Autostart.Set(true); // older builds registered Isle.Launcher.exe, which no longer ships
 
         // Software rendering keeps the GPU driver (~80 MB) out of the process; see DECISIONS.md.
         if (!Settings.Current.OptBool("render.hardware"))

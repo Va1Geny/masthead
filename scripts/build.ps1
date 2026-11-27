@@ -2,12 +2,10 @@
 #   dist\Isle\                 Isle.exe, framework-dependent single file (needs the .NET 10 Desktop Runtime)
 #   dist\Isle-selfcontained\   the same with a self-contained Isle.exe (no runtime needed)
 # Usage: .\scripts\build.ps1 [-SkipTests] [-OutputDirectory dist]
-# The small Rust launcher (Isle.Launcher.exe) is built when rustc is on PATH; without it Isle.exe is started directly.
 param([switch]$SkipTests, [string]$OutputDirectory = "dist")
 
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot -Parent)   # repo root
-$rustc = Get-Command rustc.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source
 $output = (New-Item -ItemType Directory -Path $OutputDirectory -Force).FullName
 
 function Step($name, [scriptblock]$body) {
@@ -18,18 +16,6 @@ function Step($name, [scriptblock]$body) {
 
 Step "build" { dotnet build Isle.sln -c Release -nologo -v q }
 if (-not $SkipTests) { Step "test" { dotnet test Isle.sln -c Release -nologo --no-build -v q } }
-
-$launcher = $null
-if ($rustc) {
-    $launcherDir = New-Item -ItemType Directory -Path "target\isle-launcher" -Force
-    $launcher = Join-Path $launcherDir.FullName "Isle.Launcher.exe"
-    Step "build Rust launcher" {
-        & $rustc --edition=2024 --target x86_64-pc-windows-msvc --crate-name isle_launcher -C opt-level=s -C strip=symbols src\Isle.Launcher\main.rs -o $launcher
-    }
-}
-else {
-    Write-Host "== rustc not found: skipping Isle.Launcher.exe (run Isle.exe directly)" -ForegroundColor Yellow
-}
 
 # Isle.exe as a single file, plus the hook helper.
 $folders = @()
@@ -45,7 +31,6 @@ foreach ($selfContained in $false, $true) {
         if ($selfContained) { dotnet publish src\Isle.Hook\Isle.Hook.csproj -c Release -r win-x64 -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishTrimmed=true --self-contained true -o $dir -nologo -v q }
         else { dotnet publish src\Isle.Hook\Isle.Hook.csproj -c Release -r win-x64 -p:PublishSingleFile=true --self-contained false -o $dir -nologo -v q }
     }
-    if ($launcher) { Copy-Item -LiteralPath $launcher -Destination $dir -Force }
     $folders += $dir
 }
 

@@ -102,8 +102,7 @@ Unzip it to a permanent folder and run `Isle.exe` (the files keep their original
 
 ## Build and run
 
-Requirements: Windows 10 (19041) or 11, x64, the [.NET 10 SDK](https://dotnet.microsoft.com/download). Optional:
-`rustc` 1.85+ with the MSVC target for the small `Isle.Launcher.exe`; without it the build script skips it.
+Requirements: Windows 10 (19041) or 11, x64, the [.NET 10 SDK](https://dotnet.microsoft.com/download).
 
 ```powershell
 .\scripts\build.ps1                      # build, test, publish into dist\
@@ -118,7 +117,6 @@ Copy the folder somewhere permanent before enabling **Start with Windows**. For 
 ```
 src/Isle/          the app: Core, window, settings, tray, hotkeys, and Modules/ + Views/ for agents, media and the dev tools
 src/Isle.Hook/     helper the coding agents call to talk to Masthead over a named pipe
-src/Isle.Launcher/ small Rust launcher that starts Isle.exe
 tests/Isle.Tests/  xUnit tests
 ```
 
